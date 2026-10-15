@@ -1,0 +1,40 @@
+Fire up Photoshop	openApp
+Shut down Slack	quitApp
+Find me pizza places on Google Maps	searchWeb
+Go to nytimes.com	openWebsite
+What's the time in here	currentDateTime
+What's 3 squared plus 7	calculate
+Is my laptop charging	batteryStatus
+Turn it down a bit	setVolume
+Resume the song	controlMusic
+Who's singing this	controlMusic
+Put the Mac to sleep	systemAction
+Switch to light mode	systemAction
+Show me the files on my desktop	files
+Am I free on Thursday morning	readCalendar
+What do I still have to do	readReminders
+Set an alarm for 6:30	setTimer
+Ping me in an hour to stretch	setTimer
+Stop the timer	manageTimers
+Jot down: buy a birthday gift for Ece	createNote
+Put lunch with Kerem on my calendar for Wednesday at noon	addCalendarEvent
+Add renew passport to my to-dos for next week	addReminder
+Delete the file draft.txt	moveFileToTrash
+Run my Commute shortcut	runShortcut
+Dim the screen	runShortcut
+Read what's on the screen	readScreen
+Give me Selin's email	findContact
+I've finished the tax forms, tick it off	completeReminder
+Play Bohemian Rhapsody	playMusic
+Which macOS version do I have	systemInfo
+Disconnect from wi-fi	setWiFi
+Capture the screen	takeScreenshot
+Open keyboard settings	openSettings
+Summarize the PDF called lease agreement	readDocument
+Close all Finder windows	windowControl
+Explain the highlighted paragraph	readSelection
+Do I need an umbrella in Istanbul today	weather
+Euro to pound rate	exchangeRate
+What's happening in the world	news
+Text mom that dinner is ready	sendMessage
+Why is the sky blue	conversation

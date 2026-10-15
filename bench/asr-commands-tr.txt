@@ -1,0 +1,60 @@
+Safari'yi aç
+Spotify'ı kapat
+Takvimi göster
+Saat kaç
+Bugün günlerden ne
+Sesi yüzde otuz yap
+Sesi biraz kıs
+Sesi tamamen kapat
+Müziği durdur
+Sonraki şarkıya geç
+Bu şarkının adı ne
+On dakikalık zamanlayıcı kur
+Yarın sabah yedide beni uyandır
+Yarın saat onda diş hekimi randevusu ekle
+Bugün kaç toplantım var
+Bu hafta takvimimde neler var
+Ekmek almayı hatırlat
+Akşam altıda annemi aramayı hatırlat
+Anımsatıcılarımı oku
+Masaüstündeki fatura dosyasını bul
+İndirilenler klasörünü aç
+Son indirdiğim dosyayı aç
+Panodaki metni oku
+Yeni bir not oluştur, başlığı alışveriş listesi olsun
+Not al: toplantıda bütçe konuşulacak
+Pil durumu nedir
+Ekranı kilitle
+Karanlık modu aç
+Rahatsız etme modunu aç
+Wi-Fi şifresini nasıl değiştiririm
+YouTube'da kedi videoları ara
+Google'da İstanbul hava durumu ara
+Mail uygulamasını aç
+Ahmet'e yarınki toplantı için e-posta taslağı hazırla
+Hesap makinesini aç
+Yüz yirmi beşin yüzde on sekizi kaç eder
+Bir dolar kaç lira
+Türkiye'nin başkenti neresi
+Bana kısa bir fıkra anlat
+Ekran görüntüsü al
+Bilgisayarı uyku moduna al
+Bütün pencereleri küçült
+Finder'da yeni bir klasör oluştur
+Çöp kutusunu aç
+Kestirmelerden sabah rutinini çalıştır
+Parlaklığı artır
+Bluetooth'u kapat
+Bugün hava nasıl olacak
+Şu an hangi uygulamalar açık
+Xcode'u kapat ama değişiklikleri kaydetmeden kapatma
+Teşekkür ederim
+Tamam, iptal et
+Evet, onaylıyorum
+Hayır, vazgeçtim
+Bir önceki söylediğini tekrar et
+Daha yavaş konuş
+Sesini değiştir, erkek sesi olsun
+Kendini tanıt
+Ne yapabilirsin
+Asistan, ışıkları kapat

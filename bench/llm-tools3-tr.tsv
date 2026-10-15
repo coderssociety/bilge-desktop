@@ -1,0 +1,22 @@
+hava nasıl	weather
+Ankara'da hava kaç derece	weather
+yarın İstanbul'da yağmur yağacak mı	weather
+hafta sonu hava nasıl olacak	weather
+dolar kaç lira	exchangeRate
+euro ne kadar oldu	exchangeRate
+200 sterlin kaç TL	exchangeRate
+bugünün haberlerini oku	news
+ekonomi haberleri neler	news
+son dakika haberleri	news
+bu sayfayı özetle	readWebPage,readScreen
+açık olan web sayfasında ne anlatılıyor	readWebPage,readScreen
+bbc.com/turkce'yi oku	readWebPage
+okunmamış e-postalarım var mı	readMail
+Ahmet'ten mail var mı	readMail
+gelen kutumda ne var	readMail
+Ayşe'ye toplantının 3'e alındığını mail at	sendEmail
+Mehmet'e e-posta gönder raporu yarın yollayacağım de	sendEmail
+anneme eve geç geleceğimi mesaj at	sendMessage
+Can'a yoldayım diye mesaj gönder	sendMessage
+Google'da en yakın eczane	searchWeb
+youtube.com'u aç	openWebsite

@@ -1,0 +1,40 @@
+Ahmet'in telefon numarası ne	findContact
+Ayşe'nin mail adresini söyler misin	findContact
+annemin numarası kaçtı	findContact
+süt almayı tamamladım işaretle	completeReminder
+faturayı ödedim listeden düş	completeReminder
+alışveriş notumda ne yazıyor	readNotes
+son notumu oku	readNotes
+Tarkan çal	playMusic
+Sezen Aksu'dan bir şarkı aç	playMusic
+yaz şarkıları listemi çal	playMusic
+diskte ne kadar yer kaldı	systemInfo
+bilgisayar ne zamandır açık	systemInfo
+IP adresim ne	systemInfo
+hangi macOS sürümü yüklü	systemInfo
+Wi-Fi'ı kapat	setWiFi
+wifi aç	setWiFi
+ekran görüntüsü al	takeScreenshot
+bu pencerenin ekran görüntüsünü panoya al	takeScreenshot
+Bluetooth ayarlarını aç	openSettings
+bildirim ayarlarına git	openSettings
+yazılım güncellemesini aç	openSettings
+masaüstünde Faturalar diye klasör oluştur	createFolder
+belgelerde yeni klasör aç adı Proje	createFolder
+son indirdiğim PDF'i özetle	readDocument
+kira sözleşmesi belgesinde ne yazıyor	readDocument
+bunu panoya kopyala	copyToClipboard
+bu pencereyi küçült	windowControl
+Safari'yi gizle	windowControl
+pencereyi ekranın soluna al	windowControl
+tam ekran yap	windowControl
+şunu yaz yarın sabah görüşelim	typeText
+buraya merhaba nasılsın yaz	typeText
+seçili metni özetle	readSelection
+seçtiğim yazıyı İngilizceye çevir	readSelection
+Chrome'u kapat	quitApp
+müziği durdur	controlMusic
+yarın ne var takvimde	readCalendar
+toplantı notu diye not al	createNote
+ekranda ne yazıyor	readScreen
+saat kaç	currentDateTime

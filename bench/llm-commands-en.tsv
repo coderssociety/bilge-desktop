@@ -1,0 +1,76 @@
+Open Safari	openApp
+Start Xcode	openApp
+Open the Calendar app	openApp
+Close Spotify	quitApp
+Quit Preview	quitApp
+What apps are open	listRunningApps
+Search YouTube for cat videos	searchWeb
+Look up flights to Rome on Google	searchWeb
+Open github.com	openWebsite
+What time is it	currentDateTime
+What day is it today	currentDateTime
+What's 125 times 18	calculate
+How much is 15 percent of 240	calculate
+What's my battery level	batteryStatus
+What's on my clipboard	readClipboard
+Set the volume to 30 percent	setVolume
+Mute the sound	setVolume
+Pause the music	controlMusic
+Next song	controlMusic
+What's playing right now	controlMusic
+Lock the screen	systemAction
+Turn on dark mode	systemAction
+Open my Downloads folder	files
+Find my CV	files
+What's on my calendar today	readCalendar
+Do I have anything tomorrow afternoon	readCalendar
+Show my reminders	readReminders
+Set a timer for 10 minutes	setTimer
+Remind me in 20 minutes to take the laundry out	setTimer
+Wake me up at 7	setTimer
+Cancel all timers	manageTimers
+Make a note that the plumber comes Tuesday	createNote
+Add a dentist appointment tomorrow at 10	addCalendarEvent
+Schedule a meeting with Ayşe on Friday at 3 pm	addCalendarEvent
+Add eggs to my shopping list	addReminder
+Remind me to pay rent on Monday	addReminder
+Move report.pdf to the trash	moveFileToTrash
+List my shortcuts	listShortcuts
+Run the shortcut called Good Morning	runShortcut
+Turn on do not disturb	runShortcut
+What's on my screen	readScreen
+What is Ahmet's phone number	findContact
+I bought the bread, mark it done	completeReminder
+Read my shopping note	readNotes
+Play Tarkan	playMusic
+Play some relaxing jazz	playMusic
+How much disk space is left	systemInfo
+What's my IP address	systemInfo
+Turn wi-fi on	setWiFi
+Take a screenshot	takeScreenshot
+Open Bluetooth settings	openSettings
+Create a folder named Invoices on the desktop	createFolder
+Summarize the contract document	readDocument
+Copy your last answer	copyToClipboard
+Minimize this window	windowControl
+Make the window full screen	windowControl
+Type see you tomorrow	typeText
+Translate the selected text to Turkish	readSelection
+What's the weather in London	weather
+Will it be sunny tomorrow	weather
+How much is the dollar in lira	exchangeRate
+Convert 200 euros to dollars	exchangeRate
+What's the latest news	news
+Read me technology news	news
+Summarize this web page	readWebPage
+Do I have unread emails	readMail
+Email Can that I'll be late	sendEmail
+Send a message to Deniz saying I'm on my way	sendMessage
+Who wrote Hamlet	conversation
+What is the capital of Australia	conversation
+Tell me a joke	conversation
+Thank you	conversation
+Good morning	conversation
+Remember that my wife's birthday is in May	remember
+What do you remember about me	listMemories
+Forget my coffee order	forget

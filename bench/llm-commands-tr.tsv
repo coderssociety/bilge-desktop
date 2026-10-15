@@ -1,0 +1,47 @@
+Safari'yi aç	openApp
+Spotify'ı kapat	quitApp
+Hangi uygulamalar açık	listRunningApps
+YouTube'da kedi videoları ara	searchWeb
+github.com'u aç	openWebsite
+Saat kaç	currentDateTime
+Bugün günlerden ne	currentDateTime
+Yüz yirmi beşin yüzde on sekizi kaç eder	calculate
+Pil durumu nedir	batteryStatus
+Panodaki metni oku	readClipboard
+Sesi yüzde otuz yap	setVolume
+Sesi biraz kıs	setVolume
+Sesi kapat	setVolume
+Müziği durdur	controlMusic
+Sonraki şarkıya geç	controlMusic
+Bu şarkının adı ne	controlMusic
+Ekranı kilitle	systemAction
+Karanlık modu aç	systemAction
+Bilgisayarı uyut	systemAction
+Masaüstündeki fatura dosyasını bul	files
+İndirilenler klasörünü aç	files
+Son indirdiğim dosyayı aç	files
+Bugün kaç toplantım var	readCalendar
+Yarın takvimimde ne var	readCalendar
+Bu hafta neler var	readCalendar
+Anımsatıcılarımı oku	readReminders
+On dakikalık zamanlayıcı kur	setTimer
+Yarın sabah yedide beni uyandır	setTimer
+Yirmi dakika sonra çayı hatırlat	setTimer
+Kurulu zamanlayıcılar neler	manageTimers
+Zamanlayıcıları iptal et	manageTimers
+Alışveriş listesi diye bir not oluştur	createNote
+Hesap makinesini aç	openApp
+Takvimi aç	openApp
+Merhaba, nasılsın	conversation
+Bana kısa bir fıkra anlat	conversation
+Türkiye'nin başkenti neresi	conversation
+Teşekkür ederim	conversation
+Ne yapabilirsin	conversation
+Bugün hava nasıl	weather,conversation,searchWeb
+Yarın saat onda diş hekimi randevusu ekle	addCalendarEvent
+Ekmek almayı anımsatıcılarıma ekle	addReminder
+Masaüstündeki eski fatura dosyasını sil	moveFileToTrash
+Kestirmelerimi listele	listShortcuts
+Sabah rutini kestirmesini çalıştır	runShortcut
+Rahatsız etme modunu aç	runShortcut
+Ekranda ne yazıyor	readScreen

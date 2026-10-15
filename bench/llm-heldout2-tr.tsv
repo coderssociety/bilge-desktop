@@ -1,0 +1,37 @@
+Mesajlar uygulamasını aç	openApp
+Xcode'u açar mısın lütfen	openApp
+Safari'yi kapatır mısın	quitApp
+Arka planda neler çalışıyor	listRunningApps
+YouTube'da Barış Manço şarkıları ara	searchWeb
+Google'da en yakın benzinlik	searchWeb
+trendyol.com'u açar mısın	openWebsite
+Bugün ayın kaçı	currentDateTime
+Şu an saat kaç acaba	currentDateTime
+Altı yüz bölü dört kaç eder	calculate
+Bin iki yüzün yüzde yirmisi ne kadar	calculate
+Şarj ne durumda	batteryStatus
+Kopyaladığım metni okur musun	readClipboard
+Sesi biraz yükselt	setVolume
+Sesi yüzde yirmiye indir	setVolume
+Müziği duraklat	controlMusic
+Şarkıyı geç	controlMusic
+Ekranı kilitler misin	systemAction
+Karanlık moda geçer misin	systemAction
+Belgeler klasörünü aç	files
+Özgeçmiş dosyamı bulur musun	files
+Bu akşam takvimde bir şey var mı	readCalendar
+Haftalık programımda neler var	readCalendar
+Yapılacaklar listemi oku	readReminders
+Beş dakikalık zamanlayıcı başlat	setTimer
+Yarım saat sonra beni uyar	setTimer
+Bütün alarmları kapat	manageTimers
+Tarif notu diye yeni not aç	createNote
+Pazartesi sabah dokuzda ekip toplantısı ekle	addCalendarEvent
+Yarın faturayı ödememi anımsatıcıya ekle	addReminder
+Masaüstündeki deneme dosyasını çöp kutusuna at	moveFileToTrash
+Odak modunu aç	runShortcut
+Nasılsın bugün	conversation
+Dünyanın en büyük okyanusu hangisi	conversation
+Bana bir tavsiye ver	conversation
+Bu hata mesajını oku	readScreen
+Açık sayfayı özetler misin	readScreen,readWebPage

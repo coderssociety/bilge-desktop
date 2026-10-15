@@ -1,0 +1,40 @@
+[project]
+name = "bilge"
+version = "0.1.0.dev0"
+description = "A voice assistant for Windows and Linux that speaks Turkish and English."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "keyring>=25",
+]
+
+[project.scripts]
+bilge = "bilge.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bilge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# The formatter wraps code; long user-facing strings stay on one line.
+ignore = ["E501"]

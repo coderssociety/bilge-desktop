@@ -1,0 +1,35 @@
+Firefox'u başlat	openApp
+WhatsApp'ı açar mısın	openApp
+Terminali kapat	quitApp
+Şu an önde hangi uygulama var	listRunningApps
+Vikipedi'de Atatürk'ü ara	searchWeb
+Haritalarda Kadıköy'ü göster	searchWeb
+hepsiburada.com'u aç	openWebsite
+Ayın kaçı bugün	currentDateTime
+Saat kaç oldu acaba	currentDateTime
+Üç yüz yirminin yarısı kaç	calculate
+On iki çarpı on beş	calculate
+Bataryam kaç yüzde	batteryStatus
+Sesi elliye getir	setVolume
+Sesi biraz aç	setVolume
+Müziği başlat	controlMusic
+Bir önceki şarkıyı çal	controlMusic
+Mac'i kilitle	systemAction
+Aydınlık moda geç	systemAction
+Masaüstünü aç	files
+Sunum dosyamı bul	files
+Yarın sabah toplantım var mı	readCalendar
+Bugün takvimde ne var	readCalendar
+Yapılacaklarımı söyle	readReminders
+Kırk beş dakikalık zamanlayıcı kur	setTimer
+Akşam sekizde ilacımı hatırlat	setTimer
+Kaç tane alarm kurulu	manageTimers
+Toplantıda konuşulanlar diye not oluştur	createNote
+Günaydın	conversation
+En uzun nehir hangisi	conversation
+Adın ne	conversation
+Perşembe öğleden sonra üçte veli toplantısı ekle	addCalendarEvent
+Fatura ödemeyi yapılacaklara ekle	addReminder
+İndirilenlerdeki kurulum dosyasını çöpe at	moveFileToTrash
+Hangi kestirmeler var	listShortcuts
+Eve geliyorum kestirmesini başlat	runShortcut
