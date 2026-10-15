@@ -33,6 +33,9 @@ class Tool:
     untrusted_output: bool = False
     # Corrects the model's arguments against what the user actually said, before anything runs.
     refine: Callable[[dict[str, Any], str], dict[str, Any]] | None = None
+    # What the call will do, as a spoken question ("example.com sayfasını açıp okuyayım mı?"); used when a
+    # normally safe step needs a yes because it follows text someone else wrote.
+    spoken_action: Callable[[dict[str, Any]], str] | None = None
 
     @property
     def spec(self) -> ToolSpec:
@@ -44,6 +47,8 @@ class Tool:
         return self.generic_question(arguments)
 
     def generic_question(self, arguments: dict[str, Any]) -> str:
+        if self.spoken_action:
+            return self.spoken_action(arguments)
         return f"{self.name} {describe_arguments(arguments)}".strip()
 
 

@@ -116,7 +116,7 @@ class ConversationFlow:
         if isinstance(self._phase, ListeningForWake):
             return self._heard_while_idle(transcript, at)
         if isinstance(self._phase, AwaitingCommand | FollowUp):
-            return self._heard_in_window(transcript)
+            return self._heard_in_window(transcript, at)
         return NoAction()
 
     def _heard_while_idle(self, transcript: str, now: datetime) -> Action:
@@ -131,12 +131,17 @@ class ConversationFlow:
             return NoAction()
         return self._run(match.command)
 
-    def _heard_in_window(self, transcript: str) -> Action:
+    def _heard_in_window(self, transcript: str, now: datetime) -> Action:
         wake_match = self.matcher.match(transcript)
         command = wake_match.command if wake_match is not None else transcript.strip()
         key = folded(command)
         if not key:
-            return NoAction()
+            if wake_match is None:
+                return NoAction()
+            # "Bilge" on its own while the window is open starts a fresh wait for the command, as when idle.
+            self._session = None
+            self._phase = AwaitingCommand(deadline=now + timedelta(seconds=self.command_timeout))
+            return AcknowledgeWake()
         session = self._session
         if (
             isinstance(self._phase, FollowUp)

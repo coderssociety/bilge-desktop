@@ -48,11 +48,26 @@ class ModelSettings:
 
 
 @dataclass
+class VoiceSettings:
+    # "local" (Whisper on this computer), or a transcription API: "openai", "groq".
+    recognizer: str = "local"
+    recognizer_model: str = ""
+    voice: str = "F1"
+    wake_phrase: str = "bilge"
+    follow_up: bool = True
+    barge_in: bool = True
+    speaker_check: bool = False
+    input_device: str | None = None
+    output_device: str | None = None
+
+
+@dataclass
 class Settings:
     language: str = AssistantLanguage.TURKISH.value
     model: ModelSettings = field(default_factory=ModelSettings)
     # Used when a weather question names no city.
     weather_city: str = "İstanbul"
+    voice: VoiceSettings = field(default_factory=VoiceSettings)
 
     @property
     def assistant_language(self) -> AssistantLanguage:
@@ -75,7 +90,20 @@ def load_settings(path: Path | None = None) -> Settings:
     except (OSError, ValueError) as error:
         raise RuntimeError(f"Could not read {path}: {error}") from error
     model = data.get("model") or {}
+    voice = data.get("voice") if isinstance(data.get("voice"), dict) else {}
+    defaults = VoiceSettings()
     return Settings(
+        voice=VoiceSettings(
+            recognizer=str(voice.get("recognizer", defaults.recognizer)),
+            recognizer_model=str(voice.get("recognizer_model", "")),
+            voice=str(voice.get("voice", defaults.voice)),
+            wake_phrase=str(voice.get("wake_phrase") or defaults.wake_phrase),
+            follow_up=bool(voice.get("follow_up", defaults.follow_up)),
+            barge_in=bool(voice.get("barge_in", defaults.barge_in)),
+            speaker_check=bool(voice.get("speaker_check", defaults.speaker_check)),
+            input_device=voice.get("input_device") or None,
+            output_device=voice.get("output_device") or None,
+        ),
         language=str(data.get("language", AssistantLanguage.TURKISH.value)),
         weather_city=str(data.get("weather_city") or "İstanbul"),
         model=ModelSettings(

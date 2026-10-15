@@ -27,7 +27,23 @@ class Command:
 Decision = NoBargeIn | Stop | Command
 
 _TURKISH_STOP_WORDS = frozenset(
-    {"dur", "durdur", "sus", "yeter", "kes", "tamam", "iptal", "hayir", "bekle", "stop", "artik"}
+    # "durun" is the polite form; "duran" is how recognizers often hear "dur" over the assistant's own voice.
+    {
+        "dur",
+        "durun",
+        "duran",
+        "durdur",
+        "sus",
+        "susun",
+        "yeter",
+        "kes",
+        "tamam",
+        "iptal",
+        "hayir",
+        "bekle",
+        "stop",
+        "artik",
+    }
 )
 _ENGLISH_STOP_WORDS = frozenset(
     {"stop", "quiet", "enough", "cancel", "wait", "hush", "silence", "okay", "ok", "no", "please", "now"}

@@ -269,6 +269,9 @@ def news(language: AssistantLanguage) -> Tool:
             "properties": {"category": {"type": "string", "enum": list(NEWS_FEEDS[language])}},
         },
         untrusted_output=True,
+        spoken_action=lambda _: (
+            "Shall I read the latest headlines?" if english else "Son haber başlıklarını okuyayım mı?"
+        ),
     )
 
 
@@ -310,4 +313,9 @@ def read_web_page(language: AssistantLanguage) -> Tool:
             "required": ["address"],
         },
         untrusted_output=True,
+        spoken_action=lambda a: (
+            f"Shall I open and read {a.get('address') or 'the page'}?"
+            if english
+            else f"{a.get('address') or 'Sayfayı'} adresindeki sayfayı açıp okuyayım mı?"
+        ),
     )

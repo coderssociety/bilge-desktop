@@ -209,3 +209,26 @@ def test_the_caution_fades_once_the_untrusted_turn_leaves_the_history():
     for command in ["haberler", "bir", "iki", "üç", "sesi kıs"]:
         agent.handle(command)
     assert asked == []
+
+
+def test_common_turkish_commands_skip_the_model():
+    from bilge.tools.builtin.calculator import calculator
+    from bilge.tools.builtin.clock import current_date_time
+
+    provider = ScriptedProvider()
+    tools = [current_date_time(AssistantLanguage.TURKISH, clock=lambda: datetime(2026, 10, 15, 14, 5)),
+             calculator(AssistantLanguage.TURKISH)]  # fmt: skip
+    agent, _ = make_agent(provider, tools)
+    assert agent.handle("saat kaç").text == "Saat 14:05. Bugün 15 Ekim 2026 Perşembe."
+    assert agent.handle("yüz yirmi beşin yüzde on sekizi kaç eder").text == "Sonuç 22,5."
+    assert provider.calls == []
+    assert agent.last_reply == "Sonuç 22,5."
+
+
+def test_english_commands_always_reach_the_model():
+    from bilge.tools.builtin.clock import current_date_time
+
+    provider = ScriptedProvider(Reply("It's 14:05."))
+    agent, _ = make_agent(provider, [current_date_time(AssistantLanguage.ENGLISH)], language=AssistantLanguage.ENGLISH)
+    agent.handle("what time is it")
+    assert len(provider.calls) == 1

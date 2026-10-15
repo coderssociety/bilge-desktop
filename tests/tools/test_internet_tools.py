@@ -95,3 +95,11 @@ def test_unreadable_amounts_are_spoken_errors(value):
 def test_amount_with_a_decimal_comma(monkeypatch):
     fake_web(monkeypatch, {"https://api.frankfurter.app": {"rates": {"TRY": 61.8}}})
     assert internet.exchange_rate(TR).run({"from": "USD", "amount": "1,5"}) == "1,5 dolar 61,8 lira."
+
+
+def test_cautioned_questions_are_spoken_sentences():
+    assert (
+        internet.read_web_page(TR).generic_question({"address": "example.com"})
+        == "example.com adresindeki sayfayı açıp okuyayım mı?"
+    )
+    assert internet.read_web_page(EN).generic_question({"address": "bbc.com"}) == "Shall I open and read bbc.com?"

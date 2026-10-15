@@ -135,3 +135,14 @@ def test_ignored_speech_in_a_work_session_does_not_keep_the_window_open_past_its
     flow.speech_started(at=later(39))
     assert flow.heard("bir şeyler", at=later(41)) == NoAction()
     assert flow.tick(at=later(41)) == ReturnToIdle(timed_out=False)
+
+
+def test_a_bare_wake_word_in_the_follow_up_window_starts_a_fresh_wait():
+    flow = ConversationFlow(WakePhraseMatcher("Asistan"))
+    flow.heard("Asistan, saat kaç", at=START)
+    flow.response_started()
+    flow.response_finished(at=later(2), allow_follow_up=True)
+    assert flow.heard("Asistan", at=later(6)) == AcknowledgeWake()
+    assert isinstance(flow.phase, AwaitingCommand)
+    assert flow.tick(at=later(11)) == NoAction()
+    assert flow.heard("dolar kaç lira", at=later(11)) == RunCommand("dolar kaç lira")

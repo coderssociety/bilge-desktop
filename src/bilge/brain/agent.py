@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
 
-from bilge.brain import instructions
+from bilge.brain import fast_path, instructions
 from bilge.brain.policy import Action, decide
 from bilge.core.language import AssistantLanguage
 from bilge.core.speech import turkish_number_parser, turkish_time_of_day
@@ -98,12 +98,18 @@ class Agent:
     def handle(self, command: str) -> Outcome:
         command = resolve(command, self.language)
         self._command = command
+        # A reply to text fetched in an earlier turn is still in the conversation.
+        self._read_earlier = any(untrusted for *_, untrusted in self._history)
+        quick = fast_path.call_for(command, self.language)
+        if quick and self.registry.get(quick.name):
+            result, ran, _ = self._run(quick, read_untrusted=False)
+            if ran:
+                request = Message.user(instructions.request(command, self.clock(), self.language))
+                return self._finish(request, result, False)
         system = instructions.system_prompt(self.language, self.memory() if self.memory else None)
         request = Message.user(instructions.request(command, self.clock(), self.language))
         earlier = [message for user, answer, _ in self._history for message in (user, answer)]
         messages = [Message.system(system), *earlier, request]
-        # A reply to text fetched in an earlier turn is still in the conversation.
-        self._read_earlier = any(untrusted for *_, untrusted in self._history)
         read_untrusted = False
         completed = 0
         for _ in range(MAX_STEPS):

@@ -38,3 +38,9 @@ def test_a_stop_word_the_assistant_itself_is_saying_is_echo_not_the_user() -> No
 @pytest.mark.parametrize("heard", ["evet çok güzel bir şehir anlatıyorsun", "yemek hazır mı"])
 def test_ordinary_speech_without_a_stop_intent_is_not_an_interruption(heard: str) -> None:
     assert detector.evaluate(heard, speaking=REPLY) == NoBargeIn()
+
+
+@pytest.mark.parametrize("heard", ["Bilge durun", "Bilge duran", "Bilge, susun"])
+def test_polite_and_misheard_stops_stop(heard):
+    detector = BargeInDetector(WakePhraseMatcher("bilge"))
+    assert detector.evaluate(heard, speaking="Ankara başkenttir") == Stop()
