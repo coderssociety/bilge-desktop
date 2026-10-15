@@ -50,6 +50,12 @@ CONFIRMATION_TIMEOUT = 8.0
 CONFIRMATION_GRACE = 5.0
 
 
+FAILED_TURN = {
+    AssistantLanguage.TURKISH: "Şu an cevap veremiyorum, dil modeline ulaşamadım.",
+    AssistantLanguage.ENGLISH: "I can't answer right now; I couldn't reach the language model.",
+}
+
+
 class Status(StrEnum):
     OFF = "off"
     LISTENING = "listening"
@@ -301,6 +307,7 @@ class VoiceAssistant:
             log.exception("The turn failed")
             self._event("error", str(error))
             self.speech.play(tone(self.speech.device.sample_rate, (440, 330, 220)))
+            self._say(FAILED_TURN[self.language])
         self._settle_barge_in()
         self._resume()
         allow_follow_up = self._barge_command is not None or (not self._stopped_by_user and self.options.follow_up)

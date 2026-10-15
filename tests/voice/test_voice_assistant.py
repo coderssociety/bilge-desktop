@@ -213,3 +213,15 @@ def test_an_english_cut_in_with_a_misspelled_name_still_counts():
     assistant._reply_so_far = "London began as Londinium"
     assistant._evaluate_barge_in(SPEECH)
     assert assistant._barge_command == "what time is it?"
+
+
+def test_a_failed_turn_is_said_out_loud():
+    class BrokenAgent(EchoAgent):
+        def handle(self, command):
+            raise RuntimeError("timed out")
+
+    assistant, speech, _ = make(ScriptedRecognizer("Bilge, İstanbul'u anlat"), BrokenAgent())
+    assistant.start()
+    assistant._handle_utterance(SPEECH)
+    assert wait(lambda: speech.said == ["Şu an cevap veremiyorum, dil modeline ulaşamadım."])
+    assistant.stop()
