@@ -166,7 +166,10 @@ def test_a_declined_trash_question_leaves_nothing_to_move(home, monkeypatch):
 def test_links_out_of_the_home_folder_are_not_found(home, tmp_path_factory):
     outside = tmp_path_factory.mktemp("outside") / "id_rsa.txt"
     outside.write_text("secret")
-    (home / "Belgeler" / "anahtar.txt").symlink_to(outside)
+    try:
+        (home / "Belgeler" / "anahtar.txt").symlink_to(outside)
+    except OSError:
+        pytest.skip("making links needs a privilege on this system")
     assert FileTools(folders(home), Opener(), TR).find("anahtar") == []
 
 
@@ -175,3 +178,11 @@ def test_documents_with_entity_declarations_are_refused(tmp_path):
         archive.writestr("word/document.xml", '<!DOCTYPE x [<!ENTITY a "aaaa">]><x>&a;</x>')
     with pytest.raises(documents.UnreadableDocument):
         documents.text_of(tmp_path / "bomb.docx")
+
+
+def test_windows_opens_only_documents_and_media():
+    from bilge.tools.desktop.files import _safe_on_windows
+
+    assert _safe_on_windows("rapor.pdf") and _safe_on_windows("tatil.JPG")
+    for name in ("kur.exe", "fatura.exe.", "fatura.pdf ", "belge.pdf:gizli", "makro.docm", "kısayol.lnk", "x.pif"):
+        assert not _safe_on_windows(name), name

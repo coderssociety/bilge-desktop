@@ -1,4 +1,4 @@
-"""Live edits in the open LibreOffice Calc sheet: "D3'e B2 ile B1'i topla", "C5'e 1250 yaz", "D3'ü oku", "geri al".
+"""Live edits in the open spreadsheet (Excel or LibreOffice Calc): "D3'e B2 ile B1'i topla", "C5'e 1250 yaz", "D3'ü oku", "geri al".
 
 Commands the rules understand never reach the language model. In spreadsheet mode, other requests about cells get a
 formula from the model, which is checked and read out before it is written. Writing over a filled cell asks first,
@@ -102,12 +102,12 @@ class SpreadsheetSession:
 
 _TEXTS = {
     TR: {
-        "description": "Öndeki LibreOffice Calc tablosunda hücreye formül ya da değer yazar, hücre okur, siler, kopyalar ve hesaplar ('D3'e B2 ile B1'i topla').",
+        "description": "Açık Excel ya da LibreOffice Calc tablosunda hücreye formül ya da değer yazar, hücre okur, siler, kopyalar ve hesaplar ('D3'e B2 ile B1'i topla').",
         "command": "Kullanıcının tablo isteği, olduğu gibi",
         "target": "Sonucun yazılacağı hücre, örn. 'D2'; yoksa boş bırak",
         "formula": "Hücreye yazılacak formül; İngilizce fonksiyon adları, ondalık ayırıcı nokta, argüman ayırıcı virgül: '=C2*1.2', '=SUM(B1:B9)'",
-        "not_running": "LibreOffice Calc açık değil.",
-        "no_document": "Calc'ta açık bir tablo yok.",
+        "not_running": "Excel ya da LibreOffice Calc açık değil.",
+        "no_document": "Açık bir tablo yok.",
         "no_uno": "LibreOffice'e bağlanamadım. Linux'ta python3-uno paketinin kurulu olması gerekiyor.",
         "too_large": "Bu aralık sesle hesaplamak için çok büyük.",
         "failed": "Tabloda bunu yapamadım.",
@@ -126,12 +126,12 @@ _TEXTS = {
         "words": [("=", "eşittir "), ("+", " artı "), ("-", " eksi "), ("*", " çarpı "), ("/", " bölü "), (":", " ile ")],
     },
     EN: {
-        "description": "Writes a formula or value into a cell of the open LibreOffice Calc sheet, reads, clears, copies and calculates cells ('put B2 plus B1 in D3').",
+        "description": "Writes a formula or value into a cell of the open Excel or LibreOffice Calc sheet, reads, clears, copies and calculates cells ('put B2 plus B1 in D3').",
         "command": "The user's spreadsheet request, as said",
         "target": "The cell for the result, e.g. 'D2'; leave empty if none",
         "formula": "The formula to write; English function names, a point for decimals, commas between arguments: '=C2*1.2', '=SUM(B1:B9)'",
-        "not_running": "LibreOffice Calc isn't open.",
-        "no_document": "There's no spreadsheet open in Calc.",
+        "not_running": "Neither Excel nor LibreOffice Calc is open.",
+        "no_document": "There's no spreadsheet open.",
         "no_uno": "I couldn't connect to LibreOffice. On Linux the python3-uno package needs to be installed.",
         "too_large": "That range is too large to calculate by voice.",
         "failed": "I couldn't do that in the sheet.",

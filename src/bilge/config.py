@@ -64,7 +64,8 @@ class VoiceSettings:
 @dataclass
 class CalendarSettings:
     # "caldav" (read and write: Nextcloud, iCloud, Fastmail, Radicale…), "ics" (a read-only address, such as
-    # Google Calendar's secret iCal address), or "" for none. Passwords and the secret address are in the key store.
+    # Google Calendar's secret iCal address), "outlook" (Windows, while Outlook is open), or "" for none. Passwords
+    # and the secret address are in the key store.
     kind: str = ""
     url: str = ""
     username: str = ""

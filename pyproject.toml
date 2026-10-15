@@ -8,6 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "av<17",
     "caldav>=3.5.0",
+    "comtypes>=1.4 ; sys_platform == 'win32'",
     "faster-whisper>=1.2.1",
     "httpx>=0.27",
     "icalendar>=7.3.0",
@@ -18,12 +19,20 @@ dependencies = [
     "numpy>=2.5.4",
     "onnxruntime>=1.31.0",
     "psutil>=7.2.2",
+    "pycaw>=20240316 ; sys_platform == 'win32'",
     "pypdf>=6.20.1",
     "recurring-ical-events>=3.8.2",
     "send2trash>=2.1.0",
     "sounddevice>=0.5.6",
     "soxr>=1.1.0",
     "tzdata>=2026.5 ; sys_platform == 'win32'",
+    "winrt-runtime>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-data-xml-dom>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-devices-radios>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-foundation>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-foundation-collections>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-media-control>=3.0 ; sys_platform == 'win32'",
+    "winrt-windows-ui-notifications>=3.0 ; sys_platform == 'win32'",
 ]
 
 [project.scripts]

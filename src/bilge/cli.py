@@ -230,6 +230,20 @@ def calendar(args: argparse.Namespace) -> int:
             config.delete_api_key(secret_name)
         print("Calendar disconnected.")
         return 0
+    if args.kind == "outlook":
+        settings.calendar = config.CalendarSettings("outlook")
+        source = assembly.calendar_source(settings.calendar)
+        if source is None:
+            print("Outlook's calendar is only available on Windows.", file=sys.stderr)
+            return 2
+        try:
+            events = source.events(*_this_week())
+        except calendars.CalendarError as error:
+            print(f"! Outlook didn't answer (is it open?): {error}", file=sys.stderr)
+            return 1
+        config.save_settings(settings)
+        print(f"Connected to Outlook. {len(events)} events in the next 7 days.")
+        return 0
     if args.kind == "caldav":
         if not args.url:
             print("A CalDAV address is needed: bilge calendar caldav <address> --user <name>", file=sys.stderr)
@@ -249,9 +263,8 @@ def calendar(args: argparse.Namespace) -> int:
             return 2
         chosen = config.CalendarSettings("ics")
         source = calendars.ICSSource(secret)
-    start = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
     try:
-        events = source.events(start, start + timedelta(days=7))
+        events = source.events(*_this_week())
     except calendars.CalendarError as error:
         print(f"! The calendar didn't answer: {error}", file=sys.stderr)
         return 1
@@ -264,6 +277,11 @@ def calendar(args: argparse.Namespace) -> int:
     config.save_settings(settings)
     print(f"Connected. {len(events)} events in the next 7 days.")
     return 0
+
+
+def _this_week() -> tuple[datetime, datetime]:
+    start = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+    return start, start + timedelta(days=7)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -308,7 +326,7 @@ def parser() -> argparse.ArgumentParser:
     use_command.set_defaults(run=use)
 
     calendar_command = commands.add_parser("calendar", help="connect a CalDAV calendar or a read-only iCal address")
-    calendar_command.add_argument("kind", choices=["caldav", "ics", "off"])
+    calendar_command.add_argument("kind", choices=["caldav", "ics", "outlook", "off"])
     calendar_command.add_argument("url", nargs="?", help="the CalDAV server or calendar address")
     calendar_command.add_argument("--user")
     calendar_command.add_argument("--name", help="the calendar new events go to")

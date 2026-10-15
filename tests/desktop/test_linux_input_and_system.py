@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -180,6 +181,7 @@ class Bus:
         self.calls.append(args)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="file:// addresses of Linux paths")
 def test_reveal_asks_the_file_manager_or_opens_the_folder(tmp_path):
     bus = Bus()
     LinuxOpener(FakeRunner({"xdg-open"}), bus).reveal(tmp_path / "a b.sh")

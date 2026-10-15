@@ -1,6 +1,7 @@
 """Builds the assistant from the settings: the one place the CLI, the tray app and the benchmarks share."""
 
 import logging
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -36,6 +37,10 @@ def calendar_source(settings: config.CalendarSettings) -> calendars.CalendarSour
         return calendars.CalDAVSource(
             settings.url, settings.username, config.api_key(CALDAV_SECRET) or "", settings.name
         )
+    if settings.kind == "outlook" and sys.platform == "win32":
+        from bilge.desktop.windows.office import Outlook, OutlookCalendar
+
+        return OutlookCalendar(Outlook())
     if settings.kind == "ics":
         url = config.api_key(ICS_SECRET)
         return calendars.ICSSource(url) if url else None
@@ -113,7 +118,7 @@ def _desktop_tools(
 
     dictation = typing.DictationSession(found.keyboard, language)
     sheet = spreadsheet.SpreadsheetSession(language)
-    sheet_tool = spreadsheet.SpreadsheetTool(LibreOfficeCalc(Runner()), sheet, language)
+    sheet_tool = spreadsheet.SpreadsheetTool(_spreadsheet_apps(LibreOfficeCalc(Runner())), sheet, language)
     tools = [
         *apps.app_tools(apps.AppCatalog(found.apps), language),
         sound.volume_tool(found.volume, language),
@@ -126,6 +131,7 @@ def _desktop_tools(
         *web.web_tools(found.opener, language),
         *timers.timer_tools(timers.TimerService(alert, language), language),
         spreadsheet.spreadsheet_tool(sheet_tool),
+        *_office_tools(language),
     ]
     rules = [
         rule("startDictation", lambda command: dictation_command.is_start(command, language)),
@@ -138,6 +144,23 @@ def _desktop_tools(
              tools=frozenset({"spreadsheet"})),
     ]  # fmt: skip
     return tools, rules, modes
+
+
+def _spreadsheet_apps(calc):
+    if sys.platform != "win32":
+        return calc
+    from bilge.desktop.windows.office import ExcelSheets, SpreadsheetApps
+
+    return SpreadsheetApps({"excel": ExcelSheets(), "calc": calc})
+
+
+def _office_tools(language: AssistantLanguage) -> list[Tool]:
+    if sys.platform != "win32":
+        return []
+    from bilge.desktop.windows.office import Outlook
+    from bilge.tools.desktop.mail import mail_tools
+
+    return mail_tools(Outlook(), language)
 
 
 def voice_models(settings: config.Settings) -> tuple[ModelSpec, ...]:

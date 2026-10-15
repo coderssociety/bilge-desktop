@@ -50,6 +50,8 @@ class Location:
     document: str
     title: str
     sheet: str
+    # Which program holds it: "calc" or "excel".
+    app: str = "calc"
 
 
 def uno_python_candidates() -> list[str]:

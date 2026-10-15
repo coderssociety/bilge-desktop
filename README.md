@@ -16,7 +16,7 @@ in a plain file.
 
 ## Status
 
-Work in progress. Phases 1 to 3 of 5 are done:
+Work in progress. Phases 1 to 4 of 5 are done:
 
 1. **Core** (done): the Turkish and English parsers from the Mac version with the same test cases, the
    tool-calling agent with confirmations and prompt-injection rules, and a text chat to try it.
@@ -24,7 +24,7 @@ Work in progress. Phases 1 to 3 of 5 are done:
    Supertonic-3 voice, echo cancellation so you can cut in, and voice recognition of the owner.
 3. **Linux tools** (done): apps, volume, music players, files and documents, typing and dictation, timers,
    calendar and reminders, LibreOffice Calc, system controls.
-4. Windows tools: the same, plus Excel and Outlook.
+4. **Windows tools** (done): the same, plus Excel, Outlook mail and Outlook's calendar and tasks.
 5. Tray app, settings, setup, installers.
 
 ## Trying it
@@ -41,22 +41,26 @@ uv run bilge listen                        # by voice; downloads the voice model
 
 `uv run bilge models` lists the chosen provider's models.
 
-## What it can do on Linux
+## What it can do
 
 | | Examples | Uses |
 |---|---|---|
-| Apps | “Firefox'u aç”, “hesap makinesini kapat”, “açık uygulamalar neler” | the desktop's menu entries, `gio` |
-| Sound | “sesi yüzde 30 yap”, “müziği durdur”, “ne çalıyor” | `wpctl`, `pactl` or `amixer`; any MPRIS player |
-| Files | “kira sözleşmesini bul”, “son indirdiğim PDF'i özetle”, “eski faturayı çöpe at” | the home folder, the freedesktop trash |
-| Typing | “şunu yaz: …”, “dikte modunu başlat” | `xdotool` (X11), `wtype` or `ydotool` (Wayland) |
-| Calendar | “yarın neler var”, “cuma 10'da diş hekimi ekle”, “süt almayı işaretle” | CalDAV, or a read-only iCal address |
-| Spreadsheet | “D3'e B2 ile B1'i topla”, “C5'e 1250 yaz”, “geri al” | LibreOffice Calc with `python3-uno` |
-| System | “ekranı kilitle”, “karanlık modu aç”, “Wi-Fi'ı kapat”, “ekran görüntüsü al”, “pil kaç” | `loginctl`, `gsettings` or Plasma, `nmcli`, the desktop's screenshot tool |
-| Clipboard | “panoda ne var”, “seçili metni çevir”, “bunu kopyala” | `wl-clipboard`, `xclip` or `xsel` |
-| Other | timers and alarms, opening sites and searches, the daily briefing | |
+| | Examples | On Linux | On Windows |
+|---|---|---|---|
+| Apps | “Firefox'u aç”, “hesap makinesini kapat”, “açık uygulamalar neler” | menu entries, `gio` | the Start menu |
+| Sound | “sesi yüzde 30 yap”, “müziği durdur”, “ne çalıyor” | `wpctl`, `pactl` or `amixer`; MPRIS players | Core Audio; the system media controls |
+| Files | “kira sözleşmesini bul”, “son indirdiğim PDF'i özetle”, “eski faturayı çöpe at” | the freedesktop trash | the Recycle Bin |
+| Typing | “şunu yaz: …”, “dikte modunu başlat” | `xdotool` (X11), `wtype` or `ydotool` (Wayland) | built in |
+| Calendar | “yarın neler var”, “cuma 10'da diş hekimi ekle”, “süt almayı işaretle” | CalDAV or an iCal address | the same, or Outlook |
+| Spreadsheet | “D3'e B2 ile B1'i topla”, “C5'e 1250 yaz”, “geri al” | LibreOffice Calc (`python3-uno`) | Excel or LibreOffice Calc |
+| Mail | “okunmamış e-postalarım”, “Ahmet'e yarın geleceğimi yaz” | | Outlook |
+| System | “ekranı kilitle”, “karanlık modu aç”, “Wi-Fi'ı kapat”, “ekran görüntüsü al”, “pil kaç” | `loginctl`, `gsettings` or Plasma, `nmcli`, the desktop's screenshot tool | built in |
+| Clipboard | “panoda ne var”, “seçili metni çevir”, “bunu kopyala” | `wl-clipboard`, `xclip` or `xsel` | built in |
+| Other | timers and alarms, opening sites and searches, the daily briefing | | |
 
 Moving files to the trash, closing apps, writing over a filled cell, adding to the calendar or turning Wi-Fi off
-asks first, and so does anything that could carry text Bilge has read somewhere else. Typing is refused in terminals,
+asks first, and so does anything that could carry text Bilge has read somewhere else. An e-mail is read out, with the
+address it goes to, before it is sent. Typing is refused in terminals,
 code editors, remote desktops, virtual machines and password managers. GNOME on Wayland doesn't tell other
 programs which window is in front, so there Bilge asks before typing.
 
@@ -65,6 +69,7 @@ programs which window is in front, so there Bilge asks before typing.
 ```bash
 uv run bilge calendar caldav https://cloud.example.org/remote.php/dav --user ayse   # Nextcloud, iCloud, Fastmail…
 uv run bilge calendar ics                   # read-only: e.g. Google Calendar's "secret address in iCal format"
+uv run bilge calendar outlook               # Windows: Outlook's calendar and tasks, while Outlook is open
 uv run bilge calendar off
 ```
 
@@ -85,6 +90,12 @@ notifications, LibreOffice Calc…) on a screenless desktop:
 ```bash
 docker build -t bilge-linux-check scripts/linux-check
 docker run --rm -v "$PWD":/src:ro bilge-linux-check
+```
+
+On Windows, `tests/windows` does the same against the signed-in desktop (it opens and closes a few windows):
+
+```powershell
+$env:BILGE_REAL_DESKTOP = 1; uv run pytest tests/windows
 ```
 
 ## License

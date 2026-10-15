@@ -14,4 +14,8 @@ def current(language: AssistantLanguage) -> Desktop | None:
         # Menu entries are matched in the assistant's language first, then by their untranslated names.
         languages = ("tr_TR", "tr") if language is AssistantLanguage.TURKISH else ("en_US", "en")
         return linux.build(languages)
+    if sys.platform == "win32":
+        from bilge.desktop import windows
+
+        return windows.build()
     return None

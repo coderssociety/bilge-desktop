@@ -27,9 +27,29 @@ _EXECUTABLE_SUFFIXES = frozenset(
         "sh", "bash", "zsh", "fish", "run", "bin", "appimage", "desktop", "deb", "rpm", "flatpakref", "snap", "py",
         "pl", "rb", "jar", "exe", "msi", "bat", "cmd", "ps1", "vbs", "js", "jsx", "mjs", "command", "app", "pyz",
         "php", "jnlp", "flatpakrepo", "url", "lnk", "hta", "reg", "ovpn", "rdp", "html", "htm", "xhtml", "mhtml",
-        "svg", "docm", "xlsm", "pptm",
+        "svg", "docm", "xlsm", "pptm", "com", "scr", "cpl", "msc", "msix", "msixbundle", "appx", "wsf", "psm1",
+        "vbe", "jse", "inf", "gadget", "application",
     }
 )  # fmt: skip
+
+
+# Windows reports every file as executable and runs dozens of kinds of file when opened, so there only these are
+# opened; anything else is shown in Explorer.
+_OPENED_ON_WINDOWS = frozenset(
+    {
+        "pdf", "txt", "md", "csv", "rtf", "doc", "docx", "odt", "xls", "xlsx", "ods", "ppt", "pptx", "odp", "epub",
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "heic", "tif", "tiff", "mp3", "wav", "flac", "m4a", "aac", "ogg",
+        "wma", "mp4", "mkv", "avi", "mov", "webm", "wmv", "zip",
+    }
+)  # fmt: skip
+
+
+def _safe_on_windows(name: str) -> bool:
+    # "fatura.exe." and "fatura.exe " open as fatura.exe; a colon names a hidden stream.
+    trimmed = name.rstrip(" .")
+    if ":" in trimmed or trimmed != name:
+        return False
+    return Path(trimmed).suffix.lower().lstrip(".") in _OPENED_ON_WINDOWS
 
 
 class FileAction(StrEnum):
@@ -134,9 +154,12 @@ class FileTools:
         return [path for path in found if path.resolve().is_relative_to(home)][:limit]
 
     def location(self, path: Path) -> str:
-        home = str(self.folders.home())
-        folder = str(path.parent)
-        return "~" + folder[len(home) :] if folder.startswith(home) else folder
+        """ "~/Belgeler", written the same way on every system since it is read aloud."""
+        try:
+            relative = path.parent.relative_to(self.folders.home()).as_posix()
+        except ValueError:
+            return str(path.parent)
+        return "~" if relative == "." else f"~/{relative}"
 
     def folder(self, name: str) -> Path:
         return {
@@ -261,6 +284,8 @@ class FileTools:
 
 
 def is_executable(path: Path) -> bool:
+    if os.name == "nt":
+        return not _safe_on_windows(path.name)
     if path.suffix.lower().lstrip(".") in _EXECUTABLE_SUFFIXES:
         return True
     try:

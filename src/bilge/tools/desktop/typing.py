@@ -27,6 +27,12 @@ REFUSED_PROGRAMS = frozenset(
         "tabby", "hyper", "warp", "warp-terminal", "ghostty", "cool-retro-term", "deepin-terminal", "contour",
         "console", "terminal", "org.gnome.console", "org.gnome.ptyxis", "org.kde.konsole", "com.mitchellh.ghostty",
         "io.elementary.terminal", "org.gnome.terminal",
+        # Windows: programs, and the window classes of consoles
+        "windowsterminal", "wt", "cmd", "powershell", "powershell_ise", "pwsh", "conhost", "openconsole", "mintty",
+        "putty", "mobaxterm", "termius", "consolewindowclass", "cascadia_hosting_window_class", "devenv", "mstsc",
+        "vmconnect", "prl_client_app", "credentialuibroker", "wsl", "conemu64", "cmder", "msrdc", "dashlane",
+        "lastpass", "nordpass", "roboform", "windsurf", "code - insiders", "code-insiders",
+        "consent", "logonui",
         # Code editors with a built-in terminal
         "code", "code-oss", "codium", "vscodium", "cursor", "zed", "zeditor", "sublime_text", "gnome-builder",
         # Remote desktops and virtual machines

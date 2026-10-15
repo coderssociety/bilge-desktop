@@ -1,4 +1,7 @@
 import signal
+import sys
+
+import pytest
 
 from bilge.desktop.linux import apps as linux_apps
 from bilge.desktop.linux.apps import LinuxApps, launch_command, parse
@@ -96,6 +99,7 @@ def test_flatpak_apps_are_found_through_flatpak_ps(tmp_path):
     assert [a.display_name for a in apps.running()] == ["Spotify"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="/proc and symbolic links are Linux's")
 def test_own_processes_reads_proc(tmp_path, monkeypatch):
     proc = tmp_path / "proc"
     for pid, argv, exe in [("10", b"/usr/bin/gedit\0--new\0", "/usr/bin/gedit"),

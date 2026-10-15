@@ -109,6 +109,7 @@ def test_a_date_the_parser_does_not_know_keeps_the_models_day():
     assert (refined["dayOffset"], refined["hour"]) == (31, 10)
 
 
+@pytest.mark.skipif(not hasattr(__import__("time"), "tzset"), reason="needs time.tzset to change the zone")
 def test_wall_clock_times_survive_a_change_to_summer_time(monkeypatch):
     import time
 

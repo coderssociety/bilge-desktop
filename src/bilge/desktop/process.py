@@ -11,6 +11,8 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 15
+# On Windows a console program run from the tray app would flash a console window each time.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 # Parsed output must not change with the user's language ("Mute: yes" would become "Sessiz: evet").
 _PARSEABLE = {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
 
@@ -54,7 +56,7 @@ class Runner:
         try:
             done = subprocess.run(
                 list(argv), input=input, stdout=output, stderr=output, encoding="utf-8", errors="replace", timeout=timeout,
-                env={**os.environ, **_PARSEABLE}, check=False,
+                env={**os.environ, **_PARSEABLE}, check=False, creationflags=_NO_WINDOW,
             )  # fmt: skip
         except FileNotFoundError as error:
             raise MissingProgram(argv[0]) from error
@@ -71,7 +73,7 @@ class Runner:
         try:
             with source.open("rb") as stdin:
                 subprocess.run(list(argv), stdin=stdin, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                               timeout=timeout, check=True)  # fmt: skip
+                               timeout=timeout, check=True, creationflags=_NO_WINDOW)  # fmt: skip
         except FileNotFoundError as error:
             raise MissingProgram(argv[0]) from error
         except (subprocess.SubprocessError, OSError) as error:
