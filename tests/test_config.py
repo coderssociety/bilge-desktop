@@ -33,3 +33,10 @@ def test_api_key_falls_back_to_the_environment(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "from-env")
     assert config.api_key("openrouter") == "from-env"
     assert config.api_key("lmstudio") is None
+
+
+def test_calendar_settings_round_trip(tmp_path):
+    path = tmp_path / "settings.json"
+    settings = config.Settings(calendar=config.CalendarSettings("caldav", "https://dav.example.org/", "ayse", "İş"))
+    config.save_settings(settings, path)
+    assert config.load_settings(path).calendar == settings.calendar

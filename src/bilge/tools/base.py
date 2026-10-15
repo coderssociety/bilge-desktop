@@ -29,8 +29,9 @@ class Tool:
     # The question asked before a CONFIRM tool runs, built from the arguments. Returning None means this
     # particular call changes nothing worth asking about (nothing to delete, a fact the user just dictated).
     confirmation: Callable[[dict[str, Any]], str | None] | None = None
-    # The result holds text someone else may have written (a web page, an e-mail, the clipboard).
-    untrusted_output: bool = False
+    # The result holds text someone else may have written (a web page, an e-mail, the clipboard). A function decides
+    # per call, for tools where only some actions read such text ("what's playing" does, "pause" doesn't).
+    untrusted_output: bool | Callable[[dict[str, Any]], bool] = False
     # Corrects the model's arguments against what the user actually said, before anything runs.
     refine: Callable[[dict[str, Any], str], dict[str, Any]] | None = None
     # What the call will do, as a spoken question ("example.com sayfasını açıp okuyayım mı?"); used when a
@@ -40,6 +41,11 @@ class Tool:
     @property
     def spec(self) -> ToolSpec:
         return ToolSpec(self.name, self.description, self.parameters)
+
+    def reads_untrusted(self, arguments: dict[str, Any]) -> bool:
+        if callable(self.untrusted_output):
+            return bool(self.untrusted_output(arguments))
+        return self.untrusted_output
 
     def question(self, arguments: dict[str, Any]) -> str | None:
         if self.confirmation:

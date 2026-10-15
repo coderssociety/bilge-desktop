@@ -8,6 +8,14 @@ from typing import Any
 
 # Results can hold page text or e-mail; only the start is kept.
 MAX_RESULT_CHARACTERS = 300
+# What the user dictates or copies may be private (a password, a health detail); only its length is kept.
+PRIVATE_ARGUMENTS = {"typeText": {"text"}, "copyToClipboard": {"text"}}
+
+
+def _logged(tool: str, key: str, value: Any) -> str:
+    if key in PRIVATE_ARGUMENTS.get(tool, ()):
+        return f"<{len(str(value))} characters>"
+    return str(value)[:MAX_RESULT_CHARACTERS]
 
 
 class ActionLog:
@@ -18,7 +26,7 @@ class ActionLog:
         entry = {
             "time": datetime.now().isoformat(timespec="seconds"),
             "tool": tool,
-            "arguments": {key: str(value)[:MAX_RESULT_CHARACTERS] for key, value in arguments.items()},
+            "arguments": {key: _logged(tool, key, value) for key, value in arguments.items()},
             "decision": decision,
             "result": result[:MAX_RESULT_CHARACTERS],
         }

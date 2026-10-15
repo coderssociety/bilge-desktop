@@ -4,10 +4,12 @@ import argparse
 import getpass
 import sys
 import threading
+from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 
 from keyring.errors import KeyringError
 
-from bilge import assembly, config
+from bilge import assembly, calendars, config
 from bilge.core.language import AssistantLanguage
 from bilge.llm.providers import PRESETS, ProviderError, make_provider
 from bilge.models.downloader import DownloadError
@@ -27,7 +29,13 @@ def _settings(args: argparse.Namespace) -> config.Settings:
 
 def chat(args: argparse.Namespace) -> int:
     settings = _settings(args)
-    agent = assembly.build_agent(settings, confirm=ask_yes_no, provider=args.provider, model=args.model)
+    agent = assembly.build_agent(
+        settings,
+        confirm=ask_yes_no,
+        provider=args.provider,
+        model=args.model,
+        announce=lambda text: print(f"\n« {text}"),
+    )
     turkish = settings.assistant_language is AssistantLanguage.TURKISH
     print("Bilge (çıkmak için Ctrl+D)" if turkish else "Bilge (Ctrl+D to quit)")
     while True:
@@ -39,7 +47,10 @@ def chat(args: argparse.Namespace) -> int:
         if not command:
             continue
         try:
-            print(agent.handle(command).text)
+            # In a hands-free mode (dictation, spreadsheet editing) a line is that mode's input.
+            outcome = agent.handle_work_input(command) if agent.work_session else agent.handle(command)
+            if outcome.text:
+                print(outcome.text)
         except ProviderError as error:
             print(f"! {error}", file=sys.stderr)
 
@@ -208,6 +219,53 @@ def key(args: argparse.Namespace) -> int:
     return 0
 
 
+def calendar(args: argparse.Namespace) -> int:
+    """Connects a calendar. Passwords and the secret iCal address are typed hidden and kept in the key store, and
+    only once the calendar has answered, so a typo doesn't replace a working setup."""
+    settings = config.load_settings()
+    if args.kind == "off":
+        settings.calendar = config.CalendarSettings()
+        config.save_settings(settings)
+        for secret_name in (assembly.CALDAV_SECRET, assembly.ICS_SECRET):
+            config.delete_api_key(secret_name)
+        print("Calendar disconnected.")
+        return 0
+    if args.kind == "caldav":
+        if not args.url:
+            print("A CalDAV address is needed: bilge calendar caldav <address> --user <name>", file=sys.stderr)
+            return 2
+        if not calendars.is_secure_address(args.url) or "@" in (urlsplit(args.url).netloc or ""):
+            print("The address must start with https:// and hold no user name or password.", file=sys.stderr)
+            return 2
+        secret_name = assembly.CALDAV_SECRET
+        secret = getpass.getpass("CalDAV password (an app password where the service offers one): ")
+        chosen = config.CalendarSettings("caldav", args.url, args.user or "", args.name or "")
+        source: calendars.CalendarSource = calendars.CalDAVSource(chosen.url, chosen.username, secret, chosen.name)
+    else:
+        secret_name = assembly.ICS_SECRET
+        secret = getpass.getpass("Secret iCal address (it is kept in the key store, not shown): ").strip()
+        if not secret.lower().startswith("https://"):
+            print("The address must start with https://", file=sys.stderr)
+            return 2
+        chosen = config.CalendarSettings("ics")
+        source = calendars.ICSSource(secret)
+    start = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+    try:
+        events = source.events(start, start + timedelta(days=7))
+    except calendars.CalendarError as error:
+        print(f"! The calendar didn't answer: {error}", file=sys.stderr)
+        return 1
+    try:
+        config.store_api_key(secret_name, secret)
+    except KeyringError as error:
+        print(f"Could not store it in the system key store: {error}", file=sys.stderr)
+        return 1
+    settings.calendar = chosen
+    config.save_settings(settings)
+    print(f"Connected. {len(events)} events in the next 7 days.")
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="bilge")
     commands = root.add_subparsers(dest="command", required=True)
@@ -248,6 +306,13 @@ def parser() -> argparse.ArgumentParser:
     use_command.add_argument("model")
     use_command.add_argument("--base-url")
     use_command.set_defaults(run=use)
+
+    calendar_command = commands.add_parser("calendar", help="connect a CalDAV calendar or a read-only iCal address")
+    calendar_command.add_argument("kind", choices=["caldav", "ics", "off"])
+    calendar_command.add_argument("url", nargs="?", help="the CalDAV server or calendar address")
+    calendar_command.add_argument("--user")
+    calendar_command.add_argument("--name", help="the calendar new events go to")
+    calendar_command.set_defaults(run=calendar)
 
     key_command = commands.add_parser("key", help="store or delete a provider's API key")
     key_command.add_argument("provider")

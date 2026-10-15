@@ -46,6 +46,7 @@ class SilentSpeech:
 
 class EchoAgent:
     last_reply = None
+    work_session = None
 
     def __init__(self, assistant_holder=None, question=None):
         self.commands = []
@@ -58,6 +59,9 @@ class EchoAgent:
         if self.question:
             self.confirmed = self.holder["a"].confirm(self.question)
         return type("Outcome", (), {"text": f"Tamam: {command}"})()
+
+    def handle_work_input(self, text):
+        return self.handle(text)
 
     def forget_conversation(self):
         pass
@@ -224,4 +228,26 @@ def test_a_failed_turn_is_said_out_loud():
     assistant.start()
     assistant._handle_utterance(SPEECH)
     assert wait(lambda: speech.said == ["Şu an cevap veremiyorum, dil modeline ulaşamadım."])
+    assistant.stop()
+
+
+def test_an_announcement_cut_short_leaves_the_next_reply_alone():
+    holder = {}
+
+    class StoppingSpeech(SilentSpeech):
+        def speak(self, text, on_sentence=None):
+            if text.startswith("Hatırlatma"):
+                holder["a"]._stopped_by_user = True
+            return super().speak(text, on_sentence)
+
+    speech = StoppingSpeech()
+    agent = EchoAgent()
+    assistant = VoiceAssistant(ScriptedRecognizer("Bilge, saat kaç"), speech, agent, AssistantLanguage.TURKISH,
+                               wake_recognizer=ScriptedRecognizer("Bilge, saat kaç"))  # fmt: skip
+    holder["a"] = assistant
+    assistant.start()
+    assistant.announce("Hatırlatma: çay.")
+    assert wait(lambda: speech.said == ["Hatırlatma: çay."] and assistant.status is Status.LISTENING)
+    assistant._handle_utterance(SPEECH)
+    assert wait(lambda: "Tamam: saat kaç" in speech.said)
     assistant.stop()

@@ -127,6 +127,8 @@ class VoiceAssistant:
         # Set by stop(); the ticker sleeps on it so stopping wakes it at once.
         self._stopping = threading.Event()
         self._turn: threading.Thread | None = None
+        # One voice at a time: a turn and an announcement never talk over each other.
+        self._speaking_lock = threading.Lock()
         self.status = Status.OFF
 
     # MARK: - Lifecycle
@@ -280,8 +282,9 @@ class VoiceAssistant:
             self.speech.play(tone(self.speech.device.sample_rate, (880, 1320)))
             self._set_status(Status.AWAKE)
         elif isinstance(action, RunCommand | RunWorkInput):
-            text = action.command if isinstance(action, RunCommand) else action.text
-            self._turn = threading.Thread(target=self._run_turn, args=(text,), name="bilge-turn", daemon=True)
+            work = isinstance(action, RunWorkInput)
+            text = action.text if work else action.command
+            self._turn = threading.Thread(target=self._run_turn, args=(text, work), name="bilge-turn", daemon=True)
             self._turn.start()
         elif isinstance(action, ReturnToIdle):
             if action.timed_out:
@@ -289,7 +292,12 @@ class VoiceAssistant:
             self.agent.forget_conversation()
             self._set_status(Status.LISTENING)
 
-    def _run_turn(self, command: str) -> None:
+    def _run_turn(self, command: str, work: bool = False) -> None:
+        """`work`: input heard without the wake word in a hands-free mode (dictation, spreadsheet editing)."""
+        with self._speaking_lock:
+            self._run_turn_locked(command, work)
+
+    def _run_turn_locked(self, command: str, work: bool) -> None:
         self._suspend()
         self._set_status(Status.THINKING)
         with self._flow_lock:
@@ -297,7 +305,7 @@ class VoiceAssistant:
         try:
             self._thinking = True
             try:
-                reply = self.agent.handle(command).text
+                reply = (self.agent.handle_work_input(command) if work else self.agent.handle(command)).text
             finally:
                 self._thinking = False
             # Stopped or redirected while it was still thinking: the answer is no longer wanted.
@@ -313,7 +321,9 @@ class VoiceAssistant:
         allow_follow_up = self._barge_command is not None or (not self._stopped_by_user and self.options.follow_up)
         self._stopped_by_user = False
         with self._flow_lock:
-            self.flow.response_finished(at=datetime.now(), allow_follow_up=allow_follow_up)
+            self.flow.response_finished(
+                at=datetime.now(), allow_follow_up=allow_follow_up, session=self.agent.work_session
+            )
             awaiting = self.flow.is_awaiting_speech
         if not awaiting:
             self.agent.forget_conversation()
@@ -409,6 +419,32 @@ class VoiceAssistant:
                 self._evaluate_barge_in(np.asarray(pending.samples, dtype=np.float32))
             finally:
                 self._speaking = False
+
+    def announce(self, text: str) -> None:
+        """Says something nobody asked for just now (a timer going off), after any reply in progress."""
+        threading.Thread(target=self._announce, args=(text,), name="bilge-announce", daemon=True).start()
+
+    def _announce(self, text: str) -> None:
+        with self._speaking_lock:
+            if not self._running.is_set():
+                return
+            self._suspend()
+            try:
+                self.speech.play(tone(self.speech.device.sample_rate, (880, 1320)))
+                self._say(text)
+                self._settle_barge_in()
+            finally:
+                self._resume()
+            # "Bilge, dur" over an announcement only stops it; a request said over it is still answered.
+            self._stopped_by_user = False
+            command, self._barge_command = self._barge_command, None
+            with self._flow_lock:
+                awaiting = self.flow.is_awaiting_speech
+            self._set_status(Status.AWAKE if awaiting else Status.LISTENING)
+        if command is not None:
+            with self._flow_lock:
+                action = self.flow.heard(command, at=datetime.now())
+            self._perform(action)
 
     # MARK: - Confirmation
 

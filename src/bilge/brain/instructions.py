@@ -41,6 +41,10 @@ def weekday_name(day: datetime, language: AssistantLanguage) -> str:
     return (_EN_WEEKDAYS if language is AssistantLanguage.ENGLISH else _TR_WEEKDAYS)[day.weekday()]
 
 
+def month_name(month: int, language: AssistantLanguage) -> str:
+    return (_EN_MONTHS if language is AssistantLanguage.ENGLISH else _TR_MONTHS)[month - 1]
+
+
 def spoken_now(now: datetime, language: AssistantLanguage) -> str:
     """ "15 Ekim 2026 Perşembe 14:05" / "Thursday, 15 October 2026, 14:05"."""
     if language is AssistantLanguage.ENGLISH:

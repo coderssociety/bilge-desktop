@@ -7,13 +7,20 @@ license = "GPL-3.0-or-later"
 requires-python = ">=3.12"
 dependencies = [
     "av<17",
+    "caldav>=3.5.0",
     "faster-whisper>=1.2.1",
     "httpx>=0.27",
+    "icalendar>=7.3.0",
+    "jeepney>=0.8 ; sys_platform == 'linux'",
     "kaldi-native-fbank>=1.22.3",
     "keyring>=25",
     "livekit>=1.1.20",
     "numpy>=2.5.4",
     "onnxruntime>=1.31.0",
+    "psutil>=7.2.2",
+    "pypdf>=6.20.1",
+    "recurring-ical-events>=3.8.2",
+    "send2trash>=2.1.0",
     "sounddevice>=0.5.6",
     "soxr>=1.1.0",
     "tzdata>=2026.5 ; sys_platform == 'win32'",
@@ -25,6 +32,7 @@ bilge = "bilge.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=8",
+    "radicale>=3.8.3",
     "ruff>=0.6",
 ]
 

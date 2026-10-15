@@ -60,13 +60,22 @@ def test_request_carries_the_time():
 
 
 def test_tool_result_goes_back_to_the_model():
-    tool, runs = recorder("setVolume", result="Ses yüzde 30.")
-    provider = ScriptedProvider(call("setVolume", percent=30), Reply("Sesi yüzde otuz yaptım."))
+    tool, runs = recorder("weather", result="Yarın 18 derece.")
+    provider = ScriptedProvider(call("weather", day_offset=1), Reply("Yarın hava 18 derece olacak."))
     agent, asked = make_agent(provider, [tool])
-    assert agent.handle("sesi yüzde otuz yap").text == "Sesi yüzde otuz yaptım."
-    assert runs == [{"percent": 30}]
+    assert agent.handle("yarın hava nasıl olacak").text == "Yarın hava 18 derece olacak."
+    assert runs == [{"day_offset": 1}]
     assert asked == []
-    assert provider.calls[1][-1].content == "Ses yüzde 30."
+    assert provider.calls[1][-1].content == "Yarın 18 derece."
+
+
+def test_everyday_command_runs_its_tool_without_the_model():
+    tool, runs = recorder("setVolume", result="Ses seviyesi yüzde 30.")
+    provider = ScriptedProvider()
+    agent, _ = make_agent(provider, [tool])
+    assert agent.handle("sesi yüzde otuz yap").text == "Ses seviyesi yüzde 30."
+    assert runs == [{"action": "set", "level": 30}]
+    assert provider.calls == []
 
 
 def test_risky_tool_runs_only_after_yes():
@@ -143,13 +152,11 @@ def test_follow_ups_see_the_previous_exchange():
 def test_untrusted_text_from_an_earlier_turn_still_asks():
     page, _ = recorder("readWebPage", result="sayfa", untrusted_output=True)
     volume, _ = recorder("setVolume")
-    provider = ScriptedProvider(
-        call("readWebPage", address="x"), Reply("Özet."), call("setVolume", percent=5), Reply("Tamam.")
-    )
+    provider = ScriptedProvider(call("readWebPage", address="x"), Reply("Özet."))
     agent, asked = make_agent(provider, [page, volume], answers=[False])
     agent.handle("şu sayfayı özetle")
-    agent.handle("sesi kıs")
-    assert asked and asked[0].startswith("Dikkat")
+    assert agent.handle("sesi kıs").text == "Tamam, yapmıyorum."
+    assert len(asked) == 1 and asked[0].startswith("Dikkat")
 
 
 def test_a_call_with_nothing_to_confirm_runs_without_asking():
@@ -232,3 +239,30 @@ def test_english_commands_always_reach_the_model():
     agent, _ = make_agent(provider, [current_date_time(AssistantLanguage.ENGLISH)], language=AssistantLanguage.ENGLISH)
     agent.handle("what time is it")
     assert len(provider.calls) == 1
+
+
+def test_a_quick_command_that_fails_goes_to_the_model():
+    def missing(_):
+        raise ToolError("'Fotoşop' adında yüklü bir uygulama bulamadım.")
+
+    app = Tool("openApp", "", run=missing)
+    provider = ScriptedProvider(Reply("Öyle bir uygulama göremedim."))
+    agent, _ = make_agent(provider, [app])
+    assert agent.handle("fotoşopu aç").text == "Öyle bir uygulama göremedim."
+    assert len(provider.calls) == 1
+
+
+def test_a_tool_that_breaks_while_asking_does_not_end_the_conversation():
+    def broken(_):
+        raise RuntimeError("helper died")
+
+    tool = Tool("spreadsheet", "", run=lambda _: "x", risk=Risk.CONFIRM, confirmation=broken)
+    agent, _ = make_agent(ScriptedProvider(call("spreadsheet", command="x"), Reply("Olmadı.")), [tool])
+    assert agent.handle("tabloyu düzenle").text == "Olmadı."
+
+
+def test_untrusted_output_can_depend_on_the_call():
+    tool, _ = recorder("controlMusic", result="Çalan: X", untrusted_output=lambda a: a.get("action") == "nowPlaying")
+    provider = ScriptedProvider(call("controlMusic", action="nowPlaying"), Reply("X çalıyor."))
+    agent, _ = make_agent(provider, [tool])
+    assert agent.handle("ne çalıyor şu an söyler misin").read_untrusted
