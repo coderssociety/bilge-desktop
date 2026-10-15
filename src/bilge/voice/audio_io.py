@@ -84,21 +84,17 @@ class SoundDevice:
         import sounddevice as sd
 
         self._sd = sd
-        self._devices = (input_device, output_device)
-        default_rate = sd.query_devices(output_device if output_device is not None else sd.default.device[1])
-        self.sample_rate = int(default_rate["default_samplerate"])
+        self._devices = choose_devices(sd, input_device, output_device)
+        self.sample_rate = int(sd.query_devices(self._devices[1])["default_samplerate"])
         self._buffer = PlaybackBuffer()
         self._stream = None
 
     def start(self, on_block: BlockHandler) -> None:
         sd = self._sd
         extra = None
-        if hasattr(sd, "WasapiSettings"):
-            try:
-                # Lets Windows convert the rate when the microphone and the speaker run at different ones.
-                extra = (sd.WasapiSettings(auto_convert=True), sd.WasapiSettings(auto_convert=True))
-            except Exception:  # Not a WASAPI device: PortAudio refuses the settings, and none are needed.
-                extra = None
+        if all(_host_api_name(sd, device) == WASAPI for device in self._devices):
+            # Lets Windows convert the rate when the microphone and the speaker run at different ones.
+            extra = (sd.WasapiSettings(auto_convert=True), sd.WasapiSettings(auto_convert=True))
 
         def callback(indata, outdata, frames, time, status):
             if status:
@@ -129,6 +125,29 @@ class SoundDevice:
     @property
     def is_playing(self) -> bool:
         return self._buffer.is_playing
+
+
+WASAPI = "Windows WASAPI"
+
+
+def _host_api_name(sd, device: int) -> str:
+    return sd.query_hostapis(sd.query_devices(device)["hostapi"])["name"]
+
+
+def choose_devices(sd, input_device: int | str | None, output_device: int | str | None) -> tuple[int, int]:
+    """The devices the user picked, else the system defaults. On Windows the defaults are taken from WASAPI:
+    PortAudio's own default is the old MME interface, which adds latency and can't share a stream's settings."""
+    default_input, default_output = sd.default.device
+    for api in sd.query_hostapis():
+        if api["name"] == WASAPI and api["default_input_device"] >= 0 and api["default_output_device"] >= 0:
+            default_input, default_output = api["default_input_device"], api["default_output_device"]
+
+    def resolve(device: int | str | None, default: int, kind: str) -> int:
+        if device is None or device == "":
+            return default
+        return int(sd.query_devices(device, kind)["index"])
+
+    return resolve(input_device, default_input, "input"), resolve(output_device, default_output, "output")
 
 
 ChunkHandler = Callable[[np.ndarray], None]

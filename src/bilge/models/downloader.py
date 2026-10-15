@@ -7,6 +7,7 @@ loaded.
 
 import hashlib
 import shutil
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,8 @@ HOST = "https://huggingface.co"
 # Kept free beyond the download itself, so the computer does not run out of space.
 SPARE_BYTES = 1_000_000_000
 _CHUNK = 1 << 20
+ATTEMPTS = 4
+RETRY_SECONDS = 2.0
 _TIMEOUT = httpx.Timeout(60.0, connect=15.0)
 
 
@@ -113,33 +116,55 @@ class Downloader:
         cancelled: Callable[[], bool],
     ) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
+        # Kept across attempts and runs: a dropped connection resumes from here instead of starting over.
         temporary = target.with_name(target.name + ".download")
-        hasher = _hasher(file)
-        count = 0
         url = f"{HOST}/{spec.repo_id}/resolve/{spec.revision}/{file.path}"
-        try:
-            with self._client.stream("GET", url) as response, temporary.open("wb") as out:
-                if response.status_code != 200:
-                    raise DownloadError(f"Could not download {file.path} ({response.status_code})")
-                for chunk in response.iter_bytes(_CHUNK):
+        for attempt in range(ATTEMPTS):
+            try:
+                self._transfer(url, file, temporary, received, cancelled)
+                break
+            except httpx.HTTPError as error:
+                if attempt == ATTEMPTS - 1:
+                    raise DownloadError(f"Could not download {file.path}: {error}") from error
+                time.sleep(RETRY_SECONDS * (attempt + 1))
+        if not _is_complete(temporary, file):
+            temporary.unlink(missing_ok=True)
+            raise DownloadError(f"{file.path} arrived damaged; try again")
+        temporary.replace(target)
+
+    def _transfer(
+        self,
+        url: str,
+        file: RepositoryFile,
+        temporary: Path,
+        received: Callable[[int], None],
+        cancelled: Callable[[], bool],
+    ) -> None:
+        offset = temporary.stat().st_size if temporary.exists() else 0
+        if offset > file.size:
+            temporary.unlink()
+            offset = 0
+        if offset == file.size:
+            return
+        headers = {"Range": f"bytes={offset}-"} if offset else {}
+        with self._client.stream("GET", url, headers=headers) as response:
+            if response.status_code == 200:
+                offset = 0
+            elif response.status_code != 206 or not offset:
+                raise DownloadError(f"Could not download {file.path} ({response.status_code})")
+            count = offset
+            with temporary.open("ab" if offset else "wb") as out:
+                # Written as it arrives, so a dropped connection loses nothing already received.
+                for chunk in response.iter_bytes():
                     if cancelled():
                         raise DownloadCancelled
                     count += len(chunk)
                     if count > file.size:
+                        out.close()
+                        temporary.unlink(missing_ok=True)
                         raise DownloadError(f"{file.path} is larger than listed")
-                    hasher.update(chunk)
                     out.write(chunk)
                     received(count)
-        except httpx.HTTPError as error:
-            temporary.unlink(missing_ok=True)
-            raise DownloadError(f"Could not download {file.path}: {error}") from error
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-        if count != file.size or not _matches(hasher, file):
-            temporary.unlink(missing_ok=True)
-            raise DownloadError(f"{file.path} arrived damaged; try again")
-        temporary.replace(target)
 
     def _check_space(self, needed: int, folder: Path) -> None:
         free = shutil.disk_usage(folder).free

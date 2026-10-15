@@ -64,10 +64,46 @@ def test_an_interrupted_download_resumes_without_fetching_good_files_again(tmp_p
     assert not any(path.endswith("vocoder.onnx") for path in requests)
 
 
-def test_cancelling_leaves_no_half_file(tmp_path):
+def test_cancelling_keeps_the_partial_file_for_later(tmp_path):
     with pytest.raises(DownloadCancelled):
         Downloader(tmp_path, server()).download(SPEC, cancelled=lambda: True)
-    assert not list(tmp_path.rglob("*.download"))
+    assert not Downloader(tmp_path, server()).is_downloaded(SPEC)
+    assert Downloader(tmp_path, server()).download(SPEC).is_dir()
+
+
+def test_a_dropped_connection_resumes_where_it_stopped(tmp_path, monkeypatch):
+    monkeypatch.setattr("bilge.models.downloader.RETRY_SECONDS", 0)
+    ranges = []
+    calls = {"big": 0}
+
+    def handler(request):
+        if "/api/models/" in request.url.path:
+            return httpx.Response(200, json=LISTING)
+        name = request.url.path.split(f"/resolve/{REV}/")[1]
+        data = {"onnx/tts.json": SMALL, "onnx/vocoder.onnx": BIG}[name]
+        if name.endswith(".onnx"):
+            calls["big"] += 1
+            ranges.append(request.headers.get("range"))
+            if calls["big"] == 1:
+                return httpx.Response(200, stream=FailingStream(data[:1000]))
+            start = int(request.headers["range"].split("=")[1].rstrip("-"))
+            return httpx.Response(206, content=data[start:])
+        return httpx.Response(200, content=data)
+
+    folder = Downloader(tmp_path, httpx.Client(transport=httpx.MockTransport(handler))).download(SPEC)
+    assert (folder / "onnx" / "vocoder.onnx").read_bytes() == BIG
+    assert ranges == [None, "bytes=1000-"]
+
+
+class FailingStream(httpx.SyncByteStream):
+    """Sends part of the body, then the connection drops."""
+
+    def __init__(self, part):
+        self.part = part
+
+    def __iter__(self):
+        yield self.part
+        raise httpx.ReadTimeout("The read operation timed out")
 
 
 def test_unpinned_or_odd_models_are_refused(tmp_path):

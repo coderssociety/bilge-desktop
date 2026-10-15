@@ -10,6 +10,7 @@ from keyring.errors import KeyringError
 from bilge import assembly, config
 from bilge.core.language import AssistantLanguage
 from bilge.llm.providers import PRESETS, ProviderError, make_provider
+from bilge.models.downloader import DownloadError
 
 
 def ask_yes_no(question: str) -> bool:
@@ -259,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         return args.run(args)
-    except (ProviderError, RuntimeError) as error:
+    except (ProviderError, DownloadError, RuntimeError) as error:
         print(f"! {error}", file=sys.stderr)
         return 1
 
