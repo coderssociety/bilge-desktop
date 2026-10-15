@@ -81,6 +81,10 @@ class Settings:
     weather_city: str = "İstanbul"
     voice: VoiceSettings = field(default_factory=VoiceSettings)
     calendar: CalendarSettings = field(default_factory=CalendarSettings)
+    # The small window in the screen corner showing what was heard and the reply.
+    show_hud: bool = True
+    # Set once the first-run setup has been finished.
+    setup_done: bool = False
 
     @property
     def assistant_language(self) -> AssistantLanguage:
@@ -97,7 +101,8 @@ def settings_path() -> Path:
 def load_settings(path: Path | None = None) -> Settings:
     path = path or settings_path()
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        # utf-8-sig: Notepad and PowerShell may save the file with a byte-order mark.
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
     except FileNotFoundError:
         return Settings()
     except (OSError, ValueError) as error:
@@ -126,6 +131,8 @@ def load_settings(path: Path | None = None) -> Settings:
         ),
         language=str(data.get("language", AssistantLanguage.TURKISH.value)),
         weather_city=str(data.get("weather_city") or "İstanbul"),
+        show_hud=bool(data.get("show_hud", True)),
+        setup_done=bool(data.get("setup_done", False)),
         model=ModelSettings(
             provider=str(model.get("provider", "lmstudio")),
             model=str(model.get("model", "")),

@@ -40,3 +40,10 @@ def test_calendar_settings_round_trip(tmp_path):
     settings = config.Settings(calendar=config.CalendarSettings("caldav", "https://dav.example.org/", "ayse", "İş"))
     config.save_settings(settings, path)
     assert config.load_settings(path).calendar == settings.calendar
+
+
+def test_a_file_saved_with_a_byte_order_mark_is_read(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_bytes(b"\xef\xbb\xbf" + b'{"language": "en", "setup_done": true}')
+    loaded = config.load_settings(path)
+    assert loaded.language == "en" and loaded.setup_done

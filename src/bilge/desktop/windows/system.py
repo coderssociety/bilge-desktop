@@ -4,6 +4,7 @@ things on Windows."""
 import asyncio
 import contextlib
 import os
+import sys
 import time
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -15,8 +16,18 @@ from bilge.desktop.process import DesktopError, MissingProgram, Runner
 _THEME_KEY = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
 # The selection is drawn by the Snipping Tool, which puts the result on the clipboard.
 _SELECTION_SECONDS = 30
-# Until the installer registers Bilge's own, notifications go out under PowerShell's app id, which every Windows has.
+# Run from source, notifications go out under PowerShell's app id, which every Windows has; installed, under the id
+# the installer gives Bilge's Start menu shortcut.
 POWERSHELL_APP_ID = r"{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+BILGE_APP_ID = "CodersSociety.Bilge"
+
+
+def notification_app_id() -> str:
+    """Windows only shows notifications from an app id a Start menu shortcut carries; the installer makes one."""
+    shortcut = Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Bilge.lnk"
+    return BILGE_APP_ID if getattr(sys, "frozen", False) and shortcut.exists() else POWERSHELL_APP_ID
+
+
 _FOLDERS = {
     "desktop": "B4BFCC3A-DB2C-424C-B029-7FE99A87C641",
     "downloads": "374DE290-123F-4565-9164-39C4925E467B",
@@ -205,8 +216,8 @@ class WindowsOpener:
 
 
 class WindowsNotifier:
-    def __init__(self, app_id: str = POWERSHELL_APP_ID):
-        self._app_id = app_id
+    def __init__(self, app_id: str | None = None):
+        self._app_id = app_id or notification_app_id()
 
     def notify(self, title: str, body: str) -> None:
         try:

@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
@@ -174,15 +175,25 @@ def voice_models(settings: config.Settings) -> tuple[ModelSpec, ...]:
     return tuple(needed)
 
 
+# Setup and the starting assistant may both ask for the same models; one downloads while the other waits and then
+# finds them in place, instead of both writing the same partial files.
+_DOWNLOADING = threading.Lock()
+
+
 def download_missing(
-    specs: tuple[ModelSpec, ...], progress: Callable[[ModelSpec, int, int], None] | None = None
+    specs: tuple[ModelSpec, ...],
+    progress: Callable[[ModelSpec, int, int], None] | None = None,
+    cancelled: Callable[[], bool] = lambda: False,
 ) -> None:
-    downloader = Downloader(models_dir())
-    for spec in specs:
-        if not downloader.is_downloaded(spec):
-            downloader.download(
-                spec, progress=(lambda done, total, s=spec: progress(s, done, total)) if progress else None
-            )
+    with _DOWNLOADING:
+        downloader = Downloader(models_dir())
+        for spec in specs:
+            if not downloader.is_downloaded(spec):
+                downloader.download(
+                    spec,
+                    progress=(lambda done, total, s=spec: progress(s, done, total)) if progress else None,
+                    cancelled=cancelled,
+                )
 
 
 def build_voice_assistant(settings: config.Settings, on_event, provider: str | None = None, model: str | None = None):

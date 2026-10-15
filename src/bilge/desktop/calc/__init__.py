@@ -23,7 +23,7 @@ from typing import Any
 import psutil
 
 from bilge.core.spreadsheet.cell_reference import CellReference, SpreadsheetNumber, SpreadsheetValue
-from bilge.desktop.process import DesktopError, Runner
+from bilge.desktop.process import DesktopError, Runner, child_environment
 
 PIPE_PREFIX = "bilge_calc_"
 ANSWER_SECONDS = 10
@@ -191,7 +191,7 @@ class LibreOfficeCalc:
         self._answers = queue.Queue()
         self._process = subprocess.Popen(
             [python, str(_SERVER), self.pipe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, encoding="utf-8", env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            stderr=subprocess.DEVNULL, text=True, encoding="utf-8", env=child_environment({"PYTHONIOENCODING": "utf-8"}),
         )  # fmt: skip
         threading.Thread(target=self._read, args=(self._process, self._answers), daemon=True).start()
         return self._process

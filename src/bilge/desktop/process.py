@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,19 @@ TIMEOUT_SECONDS = 15
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 # Parsed output must not change with the user's language ("Mute: yes" would become "Sessiz: evet").
 _PARSEABLE = {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
+
+
+def child_environment(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """The environment for programs Bilge starts. The packaged Linux app points LD_LIBRARY_PATH at its own libraries;
+    the system's programs (a browser, LibreOffice) must load the system's, so the original setting is put back."""
+    env = dict(os.environ)
+    if getattr(sys, "frozen", False) and sys.platform.startswith("linux"):
+        original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+        if original is None:
+            env.pop("LD_LIBRARY_PATH", None)
+        else:
+            env["LD_LIBRARY_PATH"] = original
+    return {**env, **(extra or {})}
 
 
 class DesktopError(Exception):
@@ -56,7 +70,7 @@ class Runner:
         try:
             done = subprocess.run(
                 list(argv), input=input, stdout=output, stderr=output, encoding="utf-8", errors="replace", timeout=timeout,
-                env={**os.environ, **_PARSEABLE}, check=False, creationflags=_NO_WINDOW,
+                env=child_environment(_PARSEABLE), check=False, creationflags=_NO_WINDOW,
             )  # fmt: skip
         except FileNotFoundError as error:
             raise MissingProgram(argv[0]) from error
@@ -73,7 +87,8 @@ class Runner:
         try:
             with source.open("rb") as stdin:
                 subprocess.run(list(argv), stdin=stdin, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                               timeout=timeout, check=True, creationflags=_NO_WINDOW)  # fmt: skip
+                               timeout=timeout, check=True, creationflags=_NO_WINDOW,
+                               env=child_environment())  # fmt: skip
         except FileNotFoundError as error:
             raise MissingProgram(argv[0]) from error
         except (subprocess.SubprocessError, OSError) as error:
@@ -84,7 +99,7 @@ class Runner:
         try:
             subprocess.Popen(
                 list(argv), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True,
+                start_new_session=True, env=child_environment(),
             )  # fmt: skip
         except FileNotFoundError as error:
             raise MissingProgram(argv[0]) from error

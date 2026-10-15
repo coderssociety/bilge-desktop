@@ -16,7 +16,7 @@ in a plain file.
 
 ## Status
 
-Work in progress. Phases 1 to 4 of 5 are done:
+All five phases are done; the first release is being prepared.
 
 1. **Core** (done): the Turkish and English parsers from the Mac version with the same test cases, the
    tool-calling agent with confirmations and prompt-injection rules, and a text chat to try it.
@@ -25,9 +25,22 @@ Work in progress. Phases 1 to 4 of 5 are done:
 3. **Linux tools** (done): apps, volume, music players, files and documents, typing and dictation, timers,
    calendar and reminders, LibreOffice Calc, system controls.
 4. **Windows tools** (done): the same, plus Excel, Outlook mail and Outlook's calendar and tasks.
-5. Tray app, settings, setup, installers.
+5. **The app** (done): a tray icon, a corner window showing the conversation, settings, first-run setup, a
+   Windows installer and a Linux AppImage.
 
-## Trying it
+## Installing
+
+- **Windows 10/11 (64-bit):** run `Bilge-Setup-<version>.exe` from the releases. It installs for your user only,
+  without administrator rights, and can start Bilge with Windows.
+- **Linux:** download `Bilge-<version>-x86_64.AppImage` (or `aarch64`), make it executable and run it. It needs
+  glibc 2.34 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+) for x86_64, 2.39 for arm64. On GNOME the tray icon
+  needs the AppIndicator extension (Ubuntu has it); without it Bilge opens a small window instead.
+
+On first start, setup asks for the language, the language model, speech recognition, and downloads the voice
+models (1-2 GB). After that Bilge sits in the tray: say “Bilge” and your request. `Bilge.AppImage cli …` and
+`bilge-cli.exe` give the command line below.
+
+## Trying it from source
 
 Needs Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
@@ -37,6 +50,7 @@ uv run bilge use lmstudio <model id>       # or: openai, anthropic, gemini, open
 uv run bilge key openai                    # hosted providers only; stored in the system key store
 uv run bilge chat                          # by typing
 uv run bilge listen                        # by voice; downloads the voice models the first time
+uv sync --extra app && uv run bilge-app    # the tray app with setup and settings
 ```
 
 `uv run bilge models` lists the chosen provider's models.
@@ -91,6 +105,9 @@ notifications, LibreOffice Calc…) on a screenless desktop:
 docker build -t bilge-linux-check scripts/linux-check
 docker run --rm -v "$PWD":/src:ro bilge-linux-check
 ```
+
+Installers are built by `.github/workflows/release.yml` on a version tag: PyInstaller (`packaging/bilge.spec`),
+Inno Setup on Windows (`packaging/windows/bilge.iss`) and an AppImage built in Docker (`packaging/linux`).
 
 On Windows, `tests/windows` does the same against the signed-in desktop (it opens and closes a few windows):
 

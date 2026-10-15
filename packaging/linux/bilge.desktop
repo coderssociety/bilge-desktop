@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Bilge
+Comment=Voice assistant that speaks Turkish and English
+Comment[tr]=Türkçe ve İngilizce konuşan sesli asistan
+Exec=Bilge
+Icon=bilge
+Categories=Utility;Accessibility;
+Keywords=assistant;voice;asistan;ses;

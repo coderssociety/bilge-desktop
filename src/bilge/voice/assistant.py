@@ -480,6 +480,10 @@ class VoiceAssistant:
         self._event("answer", str(answer))
         return answer is Answer.CONFIRMED
 
+    def answer(self, confirmed: bool) -> None:
+        """A yes or no given on screen instead of out loud."""
+        self._resolve(Answer.CONFIRMED if confirmed else Answer.REJECTED)
+
     def _resolve(self, answer: Answer) -> None:
         if self._awaiting_answer.is_set():
             self._pending_answer = answer

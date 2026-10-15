@@ -130,28 +130,18 @@ def devices(args: argparse.Namespace) -> int:
 
 def enroll(args: argparse.Namespace) -> int:
     """Records five short sentences and stores the voice's embeddings (never the recordings)."""
-    import numpy as np
-    import sounddevice as sd
-    import soxr
-
-    from bilge.voice import models
-    from bilge.voice.speaker import CampPlus, EnrollmentError, VoiceStore
+    from bilge.voice import enrollment, models
+    from bilge.voice.speaker import EnrollmentError
 
     settings = _settings(args)
     assembly.download_missing((models.CAMPLUS,))
-    model = CampPlus(assembly.models_dir() / models.CAMPLUS.name / models.CAMPLUS_FILE)
     turkish = settings.assistant_language is AssistantLanguage.TURKISH
-    sentences = ENROLL_TR if turkish else ENROLL_EN
-    rate = int(sd.query_devices(settings.voice.input_device, "input")["default_samplerate"])
-    embeddings = []
-    for sentence in sentences:
-        input(f"\n{'Enter’a bas, sonra oku' if turkish else 'Press Enter, then read'}: “{sentence}”")
-        audio = sd.rec(int(ENROLL_SECONDS * rate), samplerate=rate, channels=1, dtype="float32",
-                       device=settings.voice.input_device)  # fmt: skip
-        sd.wait()
-        embeddings.append(model.embedding(soxr.resample(audio[:, 0], rate, 16_000).astype(np.float32)))
+    prompt = "Enter’a bas, sonra oku" if turkish else "Press Enter, then read"
     try:
-        stored = VoiceStore(config.data_dir() / "voiceprint.json").enroll(embeddings)
+        stored = enrollment.enroll_interactively(
+            settings.assistant_language, settings.voice.input_device, assembly.models_dir(),
+            lambda sentence: input(f"\n{prompt}: “{sentence}”"),
+        )  # fmt: skip
     except EnrollmentError as error:
         print(f"! {error}", file=sys.stderr)
         return 1
@@ -159,23 +149,6 @@ def enroll(args: argparse.Namespace) -> int:
     config.save_settings(settings)
     print(f"{'Sesin kaydedildi' if turkish else 'Your voice is saved'} (threshold {stored.threshold:.2f}).")
     return 0
-
-
-ENROLL_SECONDS = 3.5
-ENROLL_TR = [
-    "Bilge, yarın sabah saat yedide beni uyandır.",
-    "Bugün hava nasıl olacak, yağmur yağacak mı?",
-    "Ahmet'e akşam yemeğe geç kalacağımı yaz.",
-    "Bu hafta takvimimde hangi toplantılar var?",
-    "Sesi biraz kıs ve sakin bir şarkı aç.",
-]
-ENROLL_EN = [
-    "Bilge, wake me up tomorrow at seven.",
-    "What will the weather be like today, will it rain?",
-    "Tell Ahmet I'll be late for dinner tonight.",
-    "Which meetings are on my calendar this week?",
-    "Turn the volume down a little and play something calm.",
-]
 
 
 def models_list(args: argparse.Namespace) -> int:

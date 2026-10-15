@@ -38,8 +38,18 @@ dependencies = [
 [project.scripts]
 bilge = "bilge.cli:main"
 
+[project.gui-scripts]
+bilge-app = "bilge.app.main:main"
+
+[project.optional-dependencies]
+app = [
+    "pyside6-essentials>=6.8",
+]
+
 [dependency-groups]
 dev = [
+    "pyinstaller>=6.11",
+    "pyside6-essentials>=6.8",
     "pytest>=8",
     "radicale>=3.8.3",
     "ruff>=0.6",
