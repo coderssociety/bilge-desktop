@@ -65,9 +65,12 @@ class VoiceSettings:
     hotkey: str = ""
     # Where local Whisper runs: "auto", "cpu", or "gpu" (any graphics card, through whisper.cpp).
     accelerator: str = "auto"
+    # Minutes without a request after which the large Whisper model is let go; 0 keeps it loaded.
+    unload_minutes: int = 0
 
 
 ACCELERATORS = ("auto", "cpu", "gpu")
+UNLOAD_MINUTES = (0, 10, 30, 60)
 
 
 @dataclass
@@ -143,6 +146,7 @@ def load_settings(path: Path | None = None) -> Settings:
             wake_word=bool(voice.get("wake_word", True)) or not str(voice.get("hotkey") or ""),
             hotkey=str(voice.get("hotkey") or ""),
             accelerator=accelerator if (accelerator := str(voice.get("accelerator", ""))) in ACCELERATORS else "auto",
+            unload_minutes=minutes if (minutes := voice.get("unload_minutes", 0)) in UNLOAD_MINUTES else 0,
         ),
         language=str(data.get("language", AssistantLanguage.TURKISH.value)),
         weather_city=str(data.get("weather_city") or "İstanbul"),

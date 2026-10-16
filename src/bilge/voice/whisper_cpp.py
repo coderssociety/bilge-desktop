@@ -115,7 +115,7 @@ class WhisperServer:
                 self._start_once()
                 return
             except WhisperServerError:
-                self.close()
+                self._stop()
                 # Another program may have taken the free port before the server did.
                 if attempt == START_ATTEMPTS or "bind" not in self.tail().lower():
                     raise
@@ -203,6 +203,11 @@ class WhisperServer:
             raise RecognitionError("Unexpected answer from whisper.cpp") from error
 
     def close(self) -> None:
+        """Ends the server for good; a server is not started again after this."""
+        self._stop()
+        self._client.close()
+
+    def _stop(self) -> None:
         process, self._process = self._process, None
         if process is not None and process.poll() is None:
             process.terminate()
@@ -211,6 +216,10 @@ class WhisperServer:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=STOP_SECONDS)
+        if process is not None and process.stdout is not None:
+            # The output reader ends at the pipe's end; closing it here doesn't wait for that.
+            with contextlib.suppress(OSError):
+                process.stdout.close()
         if self._job is not None:
             self._job.close()
             self._job = None

@@ -321,10 +321,12 @@ def test_the_shortcut_and_wake_word_are_saved(qapp, isolated, tmp_path):
     assert "Shift+B" in window.message.text()
     assert not (tmp_path / "settings.json").exists()
     general.hotkey.setKeySequence(QKeySequence("Shift+Ctrl+B"))
-    window.pages["recognition"].accelerator.setCurrentIndex(2)
+    window.pages["recognition"].placement.accelerator.setCurrentIndex(2)
+    window.pages["recognition"].placement.unload.setCurrentIndex(1)
     window.save()
     voice = config.load_settings(tmp_path / "settings.json").voice
     assert (voice.hotkey, voice.wake_word, voice.accelerator) == ("Ctrl+Shift+B", False, "gpu")
+    assert voice.unload_minutes == 10
 
 
 def test_a_newer_release_is_offered_in_the_menu(qapp):

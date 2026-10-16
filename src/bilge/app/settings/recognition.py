@@ -5,7 +5,6 @@ import psutil
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
-    QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -18,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from bilge import assembly, config
 from bilge.app import worker
+from bilge.app.settings.placement import PlacementPanel
 from bilge.app.texts import t
 from bilge.core.language import AssistantLanguage
 from bilge.voice import enrollment
@@ -51,23 +51,8 @@ class RecognitionChooser(QWidget):
         layout.addWidget(self.key)
         layout.addWidget(self.key_state)
         layout.addWidget(QLabel(advice(), wordWrap=True))
-        self.accelerator = QComboBox()
-        for name in config.ACCELERATORS:
-            self.accelerator.addItem(t(f"recognition.{name}"), name)
-        self.find_gpu = QPushButton(t("recognition.find_gpu"))
-        self.find_gpu.clicked.connect(self._find_gpu)
-        self.gpu_state = QLabel(wordWrap=True)
-        self.placement = QWidget()
-        placement = QVBoxLayout(self.placement)
-        placement.setContentsMargins(0, 0, 0, 0)
-        placement.addWidget(QLabel(t("recognition.accelerator")))
-        row = QHBoxLayout()
-        row.addWidget(self.accelerator, 1)
-        row.addWidget(self.find_gpu)
-        placement.addLayout(row)
-        placement.addWidget(self.gpu_state)
+        self.placement = PlacementPanel()
         layout.addWidget(self.placement)
-        self.accelerator.currentIndexChanged.connect(lambda _: self.gpu_state.clear())
         self.speaker = QCheckBox(t("recognition.speaker"))
         self.voice_state = QLabel(wordWrap=True)
         self.enroll = QPushButton(t("recognition.enroll"))
@@ -94,7 +79,7 @@ class RecognitionChooser(QWidget):
 
     def load(self, settings: config.Settings) -> None:
         self.buttons.get(settings.voice.recognizer, self.buttons["local"]).setChecked(True)
-        self.accelerator.setCurrentIndex(max(0, self.accelerator.findData(settings.voice.accelerator)))
+        self.placement.load(settings)
         self.speaker.setChecked(settings.voice.speaker_check)
         self.language = settings.assistant_language
         self.input_device = settings.voice.input_device
@@ -105,7 +90,7 @@ class RecognitionChooser(QWidget):
         if settings.voice.recognizer != self.engine:
             settings.voice.recognizer_model = ""
         settings.voice.recognizer = self.engine
-        settings.voice.accelerator = self.accelerator.currentData()
+        self.placement.apply(settings)
         settings.voice.speaker_check = self.speaker.isChecked() and enrollment.voice_store().load() is not None
 
     def save_secrets(self) -> None:
@@ -121,31 +106,6 @@ class RecognitionChooser(QWidget):
         self.placement.setVisible(not api)
         if api:
             self.key_state.setText(t("model.key_stored") if config.api_key(self.engine) else t("model.key_missing"))
-
-    def _find_gpu(self) -> None:
-        from bilge.voice import placement
-
-        self.find_gpu.setEnabled(False)
-        self.gpu_state.setText(t("recognition.gpu_checking"))
-        # Asked as "the graphics card" even while the processor is chosen: the button is for finding out.
-        wanted = "auto" if self.accelerator.currentData() == "auto" else "gpu"
-
-        def look() -> placement.Placement:
-            placement.forget()
-            return placement.choose(wanted)
-
-        def done(found: placement.Placement) -> None:
-            self.find_gpu.setEnabled(True)
-            if found.where is placement.Where.PROCESSOR:
-                self.gpu_state.setText(t("recognition.gpu_none"))
-            else:
-                self.gpu_state.setText(t("recognition.gpu_found", name=found.description))
-
-        def failed(error: str) -> None:
-            self.find_gpu.setEnabled(True)
-            self.gpu_state.setText(error)
-
-        worker.run(look, done, failed, owner=self)
 
     def _show_voice(self) -> None:
         stored = enrollment.voice_store().load()

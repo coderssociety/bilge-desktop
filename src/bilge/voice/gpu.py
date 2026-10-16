@@ -41,7 +41,8 @@ class Kind(IntEnum):
 
 @dataclass(frozen=True)
 class Gpu:
-    # The position in Vulkan's list, which is what GGML_VK_VISIBLE_DEVICES takes.
+    # The position in vkEnumeratePhysicalDevices' list. GGML_VK_VISIBLE_DEVICES takes that same position and, once
+    # set, ggml skips its own filtering and ordering, so the card asked for is the card used.
     index: int
     name: str
     kind: Kind

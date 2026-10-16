@@ -223,7 +223,14 @@ def build_voice_assistant(settings: config.Settings, on_event, provider: str | N
     wake = GuardedRecognizer(
         WhisperRecognizer(str(root / models.WHISPER_BASE.name), AssistantLanguage.TURKISH, hint="Bilge")
     )
-    recognizer = GuardedRecognizer(_recognizer(voice, language, root))
+    if voice.recognizer == "local" and voice.unload_minutes:
+        from bilge.voice.idle import IdleUnloadingRecognizer
+
+        recognizer = GuardedRecognizer(
+            IdleUnloadingRecognizer(lambda: _recognizer(voice, language, root), voice.unload_minutes * 60)
+        )
+    else:
+        recognizer = GuardedRecognizer(_recognizer(voice, language, root))
     try:
         device = SoundDevice(voice.input_device, voice.output_device)
         speech = SpeechOutput(Supertonic(root / models.SUPERTONIC.name), device, language, voice.voice)

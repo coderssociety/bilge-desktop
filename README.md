@@ -70,6 +70,9 @@ Whisper on the computer runs on the processor, on an NVIDIA card through CUDA wh
 installed, or on any graphics card (AMD, Intel or NVIDIA) through whisper.cpp with Vulkan, which the installers
 include. Automatic uses a dedicated card when there is one; Settings → Recognition can pick a card built into the
 processor too, or the processor alone. On a card the model is a separate download of about 870 MB.
+“Measure speed” there times one request in each place, so the numbers show which to pick. The large model can also
+be let go after 10, 30 or 60 minutes without a request; Bilge still hears its name, and only the first request
+after that waits a few seconds while the model loads again.
 
 A recording with nothing louder than its own background is not transcribed, and the subtitle credits Whisper
 invents for silence (“Altyazı M.K.”, “Thanks for watching!”) are dropped from what it writes.

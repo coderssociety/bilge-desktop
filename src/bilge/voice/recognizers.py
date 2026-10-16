@@ -127,6 +127,11 @@ class GuardedRecognizer:
             return ""
         return hallucinations.without_made_up(self.inner.transcribe(samples))
 
+    def warm(self) -> None:
+        warm = getattr(self.inner, "warm", None)
+        if warm is not None:
+            warm()
+
     def close(self) -> None:
         close = getattr(self.inner, "close", None)
         if close is not None:

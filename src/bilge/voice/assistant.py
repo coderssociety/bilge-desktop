@@ -313,6 +313,10 @@ class VoiceAssistant:
 
     def _perform(self, action) -> None:
         if isinstance(action, AcknowledgeWake):
+            # A large model let go while idle starts loading while the request is still being said.
+            warm = getattr(self.recognizer, "warm", None)
+            if warm is not None:
+                warm()
             self.speech.play(tone(self.speech.device.sample_rate, (880, 1320)))
             self._set_status(Status.AWAKE)
         elif isinstance(action, RunCommand | RunWorkInput):

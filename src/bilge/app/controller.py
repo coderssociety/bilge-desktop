@@ -4,6 +4,7 @@ turns its events into Qt signals, which arrive on the window thread."""
 import logging
 import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QObject, Signal
 
@@ -49,6 +50,9 @@ class AssistantController(QObject):
         self._generation = 0
         # The shortcut was pressed while listening was off.
         self._wake_when_started = False
+        # Presses are handled in the order they came, one at a time, off the window thread (the wake tone may wait
+        # on the sound device).
+        self._presses = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bilge-shortcut")
         self.status = OFF
 
     @property
@@ -106,8 +110,7 @@ class AssistantController(QObject):
             if assistant is None:
                 self._wake_when_started = True
         if assistant is not None:
-            # Playing the wake tone may wait on the sound device; the window thread must not.
-            threading.Thread(target=assistant.shortcut_pressed, name="bilge-shortcut", daemon=True).start()
+            self._presses.submit(assistant.shortcut_pressed)
             return
         self.start()
 
