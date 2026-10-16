@@ -60,10 +60,15 @@ def analyse(script: str):
 # packages, so one set of libraries serves the two.
 app_analysis, cli_analysis = analyse("launch_app.py"), analyse("launch_cli.py")
 if sys.platform.startswith("linux"):
-    # ALSA must match the system's own configuration files; a bundled copy that finds none stops the program inside
-    # PortAudio. Without ALSA on the system, PortAudio fails to load instead, which Bilge reports.
+    # The system's own copies, as AppImage's exclude list names them: they must match the system's configuration
+    # files and drivers. The build system's older fontconfig can't read newer configuration, its libstdc++ is older
+    # than the graphics drivers need, and ALSA without its configuration stops the program inside PortAudio. Copies
+    # a package renamed for itself (PyAV's libasound-<hash>) are its own and stay.
+    system_libraries = {"libasound.so.2", "libcom_err.so.2", "libexpat.so.1", "libfontconfig.so.1", "libfreetype.so.6",
+                        "libgcc_s.so.1", "libgpg-error.so.0", "libharfbuzz.so.0", "libmvec.so.1", "libstdc++.so.6",
+                        "libuuid.so.1", "libX11.so.6", "libX11-xcb.so.1", "libz.so.1"}  # fmt: skip
     for analysed in (app_analysis, cli_analysis):
-        analysed.binaries = [entry for entry in analysed.binaries if not Path(entry[0]).name.startswith("libasound")]
+        analysed.binaries = [entry for entry in analysed.binaries if Path(entry[0]).name not in system_libraries]
 icon = str(root / "build/bilge.ico") if windows else None
 app = EXE(PYZ(app_analysis.pure), app_analysis.scripts, exclude_binaries=True, name="Bilge", console=False, icon=icon)
 cli = EXE(PYZ(cli_analysis.pure), cli_analysis.scripts, exclude_binaries=True, name="bilge-cli", console=True, icon=icon)
