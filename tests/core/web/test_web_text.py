@@ -51,3 +51,17 @@ def test_rss_item_titles_skipping_the_channel_title() -> None:
 )
 def test_locative_suffix_follows_vowel_harmony_and_hard_consonants(name: str, expected: str) -> None:
     assert text.locative(name) == expected
+
+
+def test_rss_and_atom_items_keep_their_article_address_and_drop_other_schemes() -> None:
+    rss = (
+        b"<rss><channel><link>https://kanal.example</link>"
+        b"<item><title>Birinci</title><link>https://www.aa.com.tr/tr/haber/1</link></item>"
+        b"<item><title>Ikinci</title><link>javascript:alert(1)</link></item></channel></rss>"
+    )
+    assert rss_headlines.items(rss, 5) == [
+        rss_headlines.Item("Birinci", "https://www.aa.com.tr/tr/haber/1"),
+        rss_headlines.Item("Ikinci", None),
+    ]
+    atom = b'<feed><entry><title>Atom</title><link rel="alternate" href="https://example.org/a"/></entry></feed>'
+    assert rss_headlines.items(atom, 5) == [rss_headlines.Item("Atom", "https://example.org/a")]

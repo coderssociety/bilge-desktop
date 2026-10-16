@@ -2,6 +2,7 @@
 headlines (Anadolu Ajansı / BBC) and reading a web page. None of these need an account or a key."""
 
 import json
+import logging
 import math
 import threading
 from collections.abc import Callable
@@ -13,9 +14,11 @@ from bilge.brain.instructions import weekday_name
 from bilge.core import text
 from bilge.core.language import AssistantLanguage
 from bilge.core.web import html_text, news_request, rss_headlines, weather_report
+from bilge.core.web import news_article as article_reference
 from bilge.tools import web_fetch
 from bilge.tools.base import Tool, ToolError
 
+log = logging.getLogger(__name__)
 EN, TR = AssistantLanguage.ENGLISH, AssistantLanguage.TURKISH
 HEADLINE_COUNT = 5
 # Enough of the feed to go on with after the first few.
@@ -269,17 +272,41 @@ def _news_introduction(kind: news_request.Kind, category: str, language: Assista
     return f"Anadolu Ajansı'ndan son {name} başlıkları. " if name else "Anadolu Ajansı'ndan son başlıklar. "
 
 
-def news(language: AssistantLanguage) -> Tool:
+class NewsReading:
+    """The headlines read out while Bilge runs, shared by the news and the tool that opens one of them."""
+
+    def __init__(self) -> None:
+        self._memory = news_request.HeadlineMemory()
+        self._lock = threading.Lock()
+
+    def recent_topic(self) -> str | None:
+        with self._lock:
+            return self._memory.recent_topic(datetime.now())
+
+    def next(self, items: list[rss_headlines.Item], topic: str, count: int) -> news_request.Reading:
+        with self._lock:
+            return self._memory.next(items, topic, count, datetime.now())
+
+    def article(self, words: str, asked: bool = False) -> article_reference.Request | None:
+        with self._lock:
+            last, heard = self._memory.heard_items(datetime.now())
+        return article_reference.find(words, last, heard, asked=asked)
+
+    def was_read(self, link: str) -> rss_headlines.Item | None:
+        with self._lock:
+            _, heard = self._memory.heard_items(datetime.now())
+        return next((item for item in heard if item.link == link), None)
+
+
+def news(language: AssistantLanguage, reading: NewsReading | None = None) -> Tool:
     english = language is EN
-    memory = news_request.HeadlineMemory()
-    lock = threading.Lock()
+    reading = reading or NewsReading()
 
     def refine(arguments: dict[str, Any], command: str) -> dict[str, Any]:
         """A topic said in the command wins over the model's choice; "bu kadar mı" goes on with the topic just read."""
         named = news_request.topic(command)
         if named is None and news_request.is_continuation(command):
-            with lock:
-                named = memory.recent_topic(datetime.now())
+            named = reading.recent_topic()
         return {**arguments, "category": named} if named else arguments
 
     def run(arguments: dict[str, Any]) -> str:
@@ -287,15 +314,14 @@ def news(language: AssistantLanguage) -> Tool:
         if category not in NEWS_FEEDS[language]:
             category = "general"
         try:
-            feed = rss_headlines.parse(web_fetch.get(NEWS_FEEDS[language][category], language).body, FEED_COUNT)
+            feed = rss_headlines.items(web_fetch.get(NEWS_FEEDS[language][category], language).body, FEED_COUNT)
         except web_fetch.WebFetchError as error:
             raise ToolError(("Couldn't get the news. " if english else "Haberler alınamadı. ") + str(error)) from error
         if not feed:
             raise ToolError("No headlines found." if english else "Haber başlığı bulunamadı.")
-        with lock:
-            reading = memory.next(feed, category, HEADLINE_COUNT, datetime.now())
-        return _news_introduction(reading.kind, category, language) + " ".join(
-            h if h.endswith(".") else h + "." for h in reading.headlines
+        read = reading.next(feed, category, HEADLINE_COUNT)
+        return _news_introduction(read.kind, category, language) + " ".join(
+            h if h.endswith(".") else h + "." for h in read.headlines
         )
 
     return Tool(
@@ -313,6 +339,76 @@ def news(language: AssistantLanguage) -> Tool:
         spoken_action=lambda _: (
             "Shall I read the latest headlines?" if english else "Son haber başlıklarını okuyayım mı?"
         ),
+    )
+
+
+def news_article(
+    language: AssistantLanguage, reading: NewsReading, open_link: Callable[[str], None] | None = None
+) -> Tool:
+    """ "Claude'un keşfettiği buluşu aç", "üçüncü haberi anlat": one of the headlines just read, fetched for the model
+    to tell in short; "aç" also shows it in the browser."""
+    english = language is EN
+
+    def refine(arguments: dict[str, Any], command: str) -> dict[str, Any]:
+        # The user's own words first; the model's paraphrase of them when those don't point at a headline.
+        found = reading.article(command) or reading.article(str(arguments.get("headline") or ""), asked=True)
+        if found is None:
+            return {key: value for key, value in arguments.items() if key != "link"}
+        return {**arguments, "link": found.item.link, "open": found.in_browser or bool(arguments.get("open"))}
+
+    def run(arguments: dict[str, Any]) -> str:
+        item = reading.was_read(str(arguments.get("link") or ""))
+        if item is None or item.link is None:
+            raise ToolError(
+                "I couldn't tell which story to open; could you name one of the headlines I read?"
+                if english
+                else "Hangi haberi açacağımı bulamadım; okuduğum başlıklardan birini söyler misin?"
+            )
+        opened = False
+        if arguments.get("open") and open_link is not None:
+            try:
+                open_link(item.link)
+                opened = True
+            except Exception:  # noqa: BLE001 - without a browser the story is still told
+                log.info("Could not open the story in the browser", exc_info=True)
+        try:
+            response = web_fetch.get(item.link, language)
+            if not 200 <= response.status < 300:
+                # A paywall, a bot block or a missing page is not the story.
+                raise web_fetch.WebFetchError(f"HTTP {response.status}")
+        except web_fetch.WebFetchError as error:
+            if opened:
+                return f"Opened in the browser: {item.title}" if english else f"Haberi tarayıcıda açtım: {item.title}"
+            raise ToolError(("Couldn't open the story. " if english else "Haber açılamadı. ") + str(error)) from error
+        body = html_text.extract(response.text())[:PAGE_CHARACTERS]
+        note = ("(Opened in the browser.)\n" if english else "(Haber tarayıcıda açıldı.)\n") if opened else ""
+        return f"{'Story' if english else 'Haber'}: {item.title}\n{note}\n{body}"
+
+    return Tool(
+        "newsArticle",
+        "Opens one of the headlines just read out by the news tool and reads the story, to tell what it says."
+        if english
+        else "Haberler aracının az önce okuduğu başlıklardan birini açıp haberin kendisini okur; ne anlattığını söylemek için.",
+        run=run,
+        parameters={
+            "type": "object",
+            "properties": {
+                "headline": {
+                    "type": "string",
+                    "description": "Which headline, as the user said it: its words or its place ('third', 'last')"
+                    if english
+                    else "Hangi başlık, kullanıcının dediği gibi: kelimeleri ya da sırası ('üçüncü', 'sonuncu')",
+                },
+                "open": {
+                    "type": "boolean",
+                    "description": "Also open it in the browser" if english else "Tarayıcıda da açılsın mı",
+                },
+            },
+            "required": ["headline"],
+        },
+        refine=refine,
+        untrusted_output=True,
+        spoken_action=lambda _: "Shall I open that story?" if english else "Bu haberi açıp okuyayım mı?",
     )
 
 

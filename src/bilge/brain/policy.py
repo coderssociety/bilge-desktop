@@ -23,6 +23,8 @@ FREE_AFTER_UNTRUSTED = frozenset(
         "currentDateTime", "calculate", "batteryStatus", "systemInfo", "weather", "exchangeRate", "news",
         "readDocument", "readNotes", "readScreen", "readSelection", "readClipboard", "readCalendar",
         "readReminders", "findContact", "readMail", "listShortcuts", "listRunningApps", "listMemories",
+        # Opens only an address that came with a headline read out, so nothing can be carried off in it.
+        "newsArticle",
     }
 )  # fmt: skip
 

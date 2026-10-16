@@ -69,12 +69,13 @@ def build_agent(
         return calendar_source(settings.calendar)
 
     briefing = Briefing(language, weather, calendar, settings.voice.wake_phrase)
+    news_reading = internet.NewsReading()
     registry = Registry([
         current_date_time(language),
         calculator(language),
         weather,
         internet.exchange_rate(language),
-        internet.news(language),
+        internet.news(language, news_reading),
         internet.read_web_page(language),
         briefing_tool(briefing),
         *calendar_tools(calendar, language),
@@ -82,6 +83,7 @@ def build_agent(
     rules: list[Rule] = [rule("dailyBriefing", briefing.claims)]
     modes: list[Mode] = []
     found = desktop.current(language)
+    registry.add(internet.news_article(language, news_reading, found.opener.open if found is not None else None))
     # Tools that refer to "the previous answer" are built before the agent that remembers it.
     built: list[Agent] = []
     if found is not None:

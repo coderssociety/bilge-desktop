@@ -95,6 +95,65 @@ def test_news_keeps_the_models_topic_when_the_command_asks_for_news(monkeypatch)
     assert tool.refine({"category": "general"}, "Bugünün önemli haberleri var mı") == {"category": "general"}
 
 
+def _linked_feed() -> bytes:
+    items = "".join(
+        f"<item><title>{title}</title><link>https://www.aa.com.tr/tr/haber/{n}</link></item>"
+        for n, title in enumerate(["Tesla yeni aracını tanıttı", "Claude'un keşfettiği buluş üzerinde çalışan biyolog"])
+    )
+    return f"<rss><channel>{items}</channel></rss>".encode()
+
+
+def test_a_story_from_the_headlines_is_read_and_opened_when_asked(monkeypatch):
+    page = "<html><head><title>AA</title></head><body><p>Açık, bir yapay zekâ tarafından bulundu.</p></body></html>"
+    fake_web(
+        monkeypatch, {"https://www.aa.com.tr/tr/rss": _linked_feed(), "https://www.aa.com.tr/tr/haber/1": page.encode()}
+    )
+    opened = []
+    reading = internet.NewsReading()
+    internet.news(TR, reading).run({})
+    tool = internet.news_article(TR, reading, opened.append)
+    arguments = tool.refine({"headline": "Claude"}, "Cloud'un keşfettiği buluşu açar mısın")
+    assert arguments["link"] == "https://www.aa.com.tr/tr/haber/1" and arguments["open"] is True
+    story = tool.run(arguments)
+    assert story.startswith("Haber: Claude'un keşfettiği buluş üzerinde çalışan biyolog\n(Haber tarayıcıda açıldı.)")
+    assert "yapay zekâ tarafından bulundu" in story
+    assert opened == ["https://www.aa.com.tr/tr/haber/1"]
+    assert tool.untrusted_output
+
+
+def test_a_story_is_only_opened_from_a_headline_read_out(monkeypatch):
+    fake_web(monkeypatch, {"https://www.aa.com.tr/tr/rss": _linked_feed()})
+    reading = internet.NewsReading()
+    internet.news(TR, reading).run({})
+    tool = internet.news_article(TR, reading, lambda link: None)
+    arguments = tool.refine({"headline": "başka bir şey", "link": "https://evil.example/?data=x"}, "şunu aç")
+    assert "link" not in arguments
+    with pytest.raises(ToolError, match="Hangi haberi"):
+        tool.run({"headline": "x", "link": "https://evil.example/?data=x"})
+
+
+def test_an_error_page_is_not_told_as_the_story(monkeypatch):
+    fake_web(monkeypatch, {"https://www.aa.com.tr/tr/rss": _linked_feed()})
+    reading = internet.NewsReading()
+    internet.news(TR, reading).run({})
+    monkeypatch.setattr(
+        web_fetch, "get", lambda url, language=TR, max_bytes=0: web_fetch.Response(url, 403, "text/html", b"Forbidden")
+    )
+    tool = internet.news_article(TR, reading, lambda link: None)
+    arguments = tool.refine({"headline": ""}, "Claude'un keşfettiği haberi anlat")
+    with pytest.raises(ToolError, match="Haber açılamadı. HTTP 403"):
+        tool.run({**arguments, "open": False})
+    assert tool.run({**arguments, "open": True}).startswith("Haberi tarayıcıda açtım:")
+
+
+def test_the_models_words_find_the_story_when_the_users_dont(monkeypatch):
+    fake_web(monkeypatch, {"https://www.aa.com.tr/tr/rss": _linked_feed()})
+    reading = internet.NewsReading()
+    internet.news(TR, reading).run({})
+    tool = internet.news_article(TR, reading)
+    assert tool.refine({"headline": "ilk"}, "onu biraz açıklar mısın")["link"] == "https://www.aa.com.tr/tr/haber/0"
+
+
 def test_web_page_is_untrusted():
     assert internet.read_web_page(TR).untrusted_output
     assert internet.news(TR).untrusted_output

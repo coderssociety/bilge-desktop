@@ -148,6 +148,7 @@ bağlantısıyla görünür. Kendiliğinden hiçbir şey indirilmez ya da kurulm
 | E-posta | “okunmamış e-postalarım”, “Ahmet'e yarın geleceğimi yaz” | | Outlook |
 | Sistem | “ekranı kilitle”, “karanlık modu aç”, “Wi-Fi'ı kapat”, “ekran görüntüsü al”, “pil kaç” | `loginctl`, `gsettings` ya da Plasma, `nmcli`, masaüstünün ekran görüntüsü aracı | yerleşik |
 | Pano | “panoda ne var”, “seçili metni çevir”, “bunu kopyala” | `wl-clipboard`, `xclip` ya da `xsel` | yerleşik |
+| Haberler | “teknoloji haberleri”, “başka var mı”, “üçüncü haberi anlat”, “Tesla haberini aç” | Anadolu Ajansı (İngilizcede BBC News); “aç” haberi tarayıcıda da açar | aynı |
 | Diğer | zamanlayıcılar ve alarmlar, site ve arama açma, günlük özet | | |
 
 Dosyaları çöpe atmak, uygulama kapatmak, dolu bir hücrenin üzerine yazmak, takvime eklemek ya da Wi-Fi'ı kapatmak
