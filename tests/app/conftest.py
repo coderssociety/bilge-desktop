@@ -10,7 +10,26 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 def qapp():
     from PySide6.QtWidgets import QApplication
 
-    return QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])
+    yield app
+    # Qt torn down by Python's own exit, in no particular order, sometimes crashes the process after every test
+    # has passed; the app is shut down here instead, as Bilge itself does.
+    for window in app.topLevelWidgets():
+        window.close()
+    app.processEvents()
+    app.shutdown()
+
+
+@pytest.fixture(autouse=True)
+def collect_on_the_test_thread():
+    """As in the app (bilge.app.collector): windows a test leaves behind are collected here, on the test's own
+    thread, never by a background thread that happens to allocate (which crashes Qt)."""
+    import gc
+
+    gc.disable()
+    yield
+    gc.collect()
+    gc.enable()
 
 
 @pytest.fixture(autouse=True)

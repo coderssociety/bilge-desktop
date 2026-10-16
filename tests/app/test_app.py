@@ -374,3 +374,22 @@ def test_a_shortcut_that_fails_brings_the_wake_word_back(qapp, isolated, tmp_pat
     assert config.load_settings(path).voice.wake_word
     assert "Ctrl+Shift+B" in messages[0] and texts.t("hotkey.wake_word_back") in messages[0]
     assert texts.status("listening") == texts.t("status.listening")
+
+
+def test_garbage_is_collected_on_the_window_thread(qapp):
+    import gc
+
+    from bilge.app.collector import WindowThreadCollector
+
+    collector = WindowThreadCollector()
+    collector.start()
+    try:
+        assert not gc.isenabled()
+        for _ in range(20_000):
+            cycle = []
+            cycle.append(cycle)
+        collector.collect_if_due()
+        assert gc.get_count()[0] < 1000
+    finally:
+        collector.stop()
+    assert gc.isenabled()

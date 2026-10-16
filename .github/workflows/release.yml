@@ -25,10 +25,11 @@ jobs:
       - name: Vulkan SDK, for whisper.cpp on graphics cards
         env:
           VULKAN_VERSION: "1.4.313.2"
-          VULKAN_SHA256: "74d0e395a17e02b3256494ab69ba635b5c50efe8bf0202d6baba3e016ca5348f"
+          # The SHA-256 LunarG publishes at sdk.lunarg.com/sdk/sha/<version>/windows/<file>.txt
+          VULKAN_SHA256: "34a921d951858274ca8e470e9d0a3b7624db41216b3908ccea9f73c8a1b7500e"
         run: |
           $installer = "$env:RUNNER_TEMP\vulkansdk.exe"
-          curl.exe -fsSL -o $installer "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
+          curl.exe -fsSL --retry 5 --retry-all-errors -o $installer "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
           if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $env:VULKAN_SHA256) { throw "Vulkan SDK checksum mismatch" }
           & $installer --accept-licenses --default-answer --confirm-command install
           if ($LASTEXITCODE -ne 0) { throw "Vulkan SDK install failed" }

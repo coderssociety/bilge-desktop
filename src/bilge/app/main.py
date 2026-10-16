@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from bilge import config
 from bilge.app import texts
+from bilge.app.collector import WindowThreadCollector
 from bilge.app.shell import Shell
 from bilge.app.tray import app_icon
 
@@ -113,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
     if _already_running(LISTEN if LISTEN_ARGUMENT in arguments[1:] else SHOW):
         return 0
     _windows_identity()
+    collector = WindowThreadCollector()
+    collector.start()
     texts.use(_settings_or_defaults().assistant_language)
     shell = Shell(app)
     app.aboutToQuit.connect(shell.shut_down)
@@ -120,6 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     shell.begin()
     code = app.exec()
     server.close()
+    collector.stop()
+    # Before Python's exit takes the objects apart in no particular order, which can crash on the way out.
+    app.shutdown()
     return code
 
 
