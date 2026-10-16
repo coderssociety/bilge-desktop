@@ -16,6 +16,10 @@
 </p>
 
 <p align="center">
+  <b>English</b> · <a href="README.tr.md">Türkçe</a>
+</p>
+
+<p align="center">
   <img src="docs/images/hud-confirm.png" width="380" alt="Bilge asks before adding an event to the calendar">
 </p>
 
