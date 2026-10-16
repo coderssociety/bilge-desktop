@@ -203,6 +203,9 @@ class VoiceAssistant:
         if not was_in_speech and self._segmenter.is_in_speech:
             with self._flow_lock:
                 self.flow.speech_started(at=datetime.now())
+        elif was_in_speech and not self._segmenter.is_in_speech:
+            with self._flow_lock:
+                self.flow.speech_ended(at=datetime.now())
         for segment in segments:
             self._queue(self._utterances, np.asarray(segment.samples, dtype=np.float32))
 
@@ -252,7 +255,9 @@ class VoiceAssistant:
         if self._needs_speaker_check(transcript, is_wake_check) and not self._speaker_allows(samples):
             self._event("ignored", transcript)
             if not is_wake_check:
-                self._set_status(Status.AWAKE)
+                with self._flow_lock:
+                    awaiting = self.flow.is_awaiting_speech
+                self._set_status(Status.AWAKE if awaiting else Status.LISTENING)
             return
         with self._flow_lock:
             action = self.flow.heard(transcript, at=datetime.now())

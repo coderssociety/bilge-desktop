@@ -177,6 +177,19 @@ class ConversationFlow:
         if self.is_awaiting_speech:
             self._speech_in_progress = True
 
+    def speech_ended(self, at: datetime) -> None:
+        """Speech that ends without being heard (too short to keep, another voice, a failed transcription) must not
+        hold the window open: from its end the window runs again, long enough for a transcription under way."""
+        if not self._speech_in_progress:
+            return
+        self._speech_in_progress = False
+        extended = at + timedelta(seconds=self.command_timeout)
+        phase = self._phase
+        if isinstance(phase, AwaitingCommand):
+            self._phase = AwaitingCommand(deadline=max(phase.deadline, extended))
+        elif isinstance(phase, FollowUp):
+            self._phase = FollowUp(deadline=max(phase.deadline, extended))
+
     def tick(self, at: datetime) -> Action:
         if self._speech_in_progress:
             return NoAction()

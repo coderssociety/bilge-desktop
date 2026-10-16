@@ -62,6 +62,33 @@ def test_speech_that_has_started_is_not_cut_by_the_deadline() -> None:
     assert flow.heard("yarın sabah yedide beni uyandır", at=later(8)) == RunCommand("yarın sabah yedide beni uyandır")
 
 
+def test_speech_that_ends_without_being_heard_lets_the_window_close() -> None:
+    flow = make_flow()
+    flow.heard("asistan", at=START)
+    flow.speech_started(at=later(2))
+    flow.speech_ended(at=later(2.2))
+    assert flow.tick(at=later(7)) == NoAction()
+    assert flow.tick(at=later(8.3)) == ReturnToIdle(timed_out=True)
+
+
+def test_a_command_transcribed_after_its_speech_ended_still_runs() -> None:
+    flow = make_flow()
+    flow.heard("asistan", at=START)
+    flow.speech_started(at=later(5))
+    flow.speech_ended(at=later(7))
+    assert flow.tick(at=later(8)) == NoAction()
+    assert flow.heard("saat kaç", at=later(8.5)) == RunCommand("saat kaç")
+
+
+def test_unheard_speech_after_an_answer_does_not_keep_the_follow_up_open() -> None:
+    flow = make_flow()
+    flow.response_started()
+    flow.response_finished(at=START, allow_follow_up=True)
+    flow.speech_started(at=later(1))
+    flow.speech_ended(at=later(1.5))
+    assert flow.tick(at=later(7.6)) == ReturnToIdle(timed_out=False)
+
+
 def test_cancel_words_end_the_exchange() -> None:
     flow = make_flow()
     flow.heard("asistan", at=START)
