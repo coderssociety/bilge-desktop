@@ -113,8 +113,9 @@ uv sync --extra app && uv run bilge-app    # the tray app with setup and setting
 Say “Bilge”, or press the listening shortcut chosen under Settings → General; pressing it while Bilge talks stops
 it. With a shortcut chosen, the wake word can be turned off, and then nothing is transcribed until the shortcut is
 pressed. Windows and X11 desktops take the shortcut directly; on Wayland the desktop asks you to approve it (KDE
-Plasma 5.27+, GNOME 48+). Where it can't, give `Bilge --listen` (the settings show the full command) a shortcut in
-the desktop's own keyboard settings.
+Plasma 5.27+, GNOME 48+), once; on KDE it can be changed later under System Settings → Shortcuts. Where it can't, and
+on Hyprland, which takes the request but binds no key itself, give `Bilge --listen` (the settings show the full
+command) a shortcut in the desktop's own keyboard settings.
 
 ## Speech recognition
 

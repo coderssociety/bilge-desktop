@@ -1,6 +1,7 @@
 import pytest
 
 from bilge.desktop import hotkey
+from bilge.desktop.hotkey.portal import shortcut_id
 from bilge.desktop.hotkey.shortcut import InvalidShortcut, parse
 
 
@@ -23,6 +24,13 @@ def test_names_the_key_for_each_system(text: str, windows: int, x11: str, portal
     assert shortcut.windows_key == windows
     assert shortcut.x11_key == x11
     assert shortcut.portal_trigger == portal
+
+
+def test_names_the_portal_shortcut_after_its_combination() -> None:
+    # The desktop keeps a binding per id; a new combination must come with a new id to replace the remembered one.
+    assert shortcut_id(parse("Ctrl+Shift+Space")) == "listen-ctrl-shift-space"
+    assert shortcut_id(parse("Shift+Ctrl+Space")) == "listen-ctrl-shift-space"
+    assert shortcut_id(parse("Meta+F9")) == "listen-logo-f9"
 
 
 def test_writes_modifiers_in_a_fixed_order() -> None:

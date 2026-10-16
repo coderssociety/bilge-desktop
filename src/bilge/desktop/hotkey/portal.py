@@ -3,6 +3,11 @@ combination; the desktop asks the user, may let them pick another, and reports e
 
 Every portal request answers later with a Response signal on a path built from a token Bilge chooses, so the signal
 is subscribed to before the request is sent.
+
+KDE keeps the shortcut under the program's id, and for a program without one (an AppImage has no installed desktop
+file for the portal to find) under the session's token, so that token is the same on every start; a new one each time
+would leave the key with an earlier, finished session. The shortcut's id names the combination, so choosing another
+in the settings replaces the binding the desktop remembers instead of being answered with it.
 """
 
 import contextlib
@@ -20,12 +25,17 @@ PORTAL_NAME = "org.freedesktop.portal.Desktop"
 PORTAL_PATH = "/org/freedesktop/portal/desktop"
 SHORTCUTS = "org.freedesktop.portal.GlobalShortcuts"
 APP_ID = "io.github.coderssociety.Bilge"
-SHORTCUT_ID = "listen"
+SESSION_TOKEN = "bilge"
 # The desktop may show the user a dialog before it answers.
 ANSWER_SECONDS = 300
 CALL_SECONDS = 10
 POLL_SECONDS = 0.5
 _CANCELLED = 1
+
+
+def shortcut_id(shortcut: Shortcut) -> str:
+    """For example "listen-ctrl-shift-space"."""
+    return "-".join(["listen", *shortcut.portal_trigger.lower().split("+")])
 
 
 class PortalHotkey:
@@ -42,6 +52,7 @@ class PortalHotkey:
         except ImportError as error:
             raise HotkeyError("unsupported", "jeepney is missing") from error
         self.shortcut = shortcut
+        self._id = shortcut_id(shortcut)
         self._pressed = pressed
         self._lost = lost
         self._stopping = threading.Event()
@@ -104,21 +115,20 @@ class PortalHotkey:
         return results
 
     def _create_session(self) -> str:
-        results = self._request("CreateSession", "a{sv}",
-                                options={"session_handle_token": ("s", f"bilge{secrets.token_hex(6)}")})  # fmt: skip
+        results = self._request("CreateSession", "a{sv}", options={"session_handle_token": ("s", SESSION_TOKEN)})
         try:
             return str(results["session_handle"][1])
         except (KeyError, IndexError, TypeError) as error:
             raise HotkeyError("unsupported", "CreateSession gave no session") from error
 
     def _bind(self, description: str) -> None:
-        wanted = [(SHORTCUT_ID, {"description": ("s", description),
-                                 "preferred_trigger": ("s", self.shortcut.portal_trigger)})]  # fmt: skip
+        wanted = [(self._id, {"description": ("s", description),
+                              "preferred_trigger": ("s", self.shortcut.portal_trigger)})]  # fmt: skip
         results = self._request("BindShortcuts", "oa(sa{sv})sa{sv}", self._session, wanted, "", options={})
-        bound = {shortcut_id: properties for shortcut_id, properties in results.get("shortcuts", ("", []))[1]}
-        if SHORTCUT_ID not in bound:
+        bound = {bound_id: properties for bound_id, properties in results.get("shortcuts", ("", []))[1]}
+        if self._id not in bound:
             raise HotkeyError("declined", "BindShortcuts")
-        trigger = bound[SHORTCUT_ID].get("trigger_description", ("s", ""))[1]
+        trigger = bound[self._id].get("trigger_description", ("s", ""))[1]
         log.info("The desktop bound Bilge's shortcut to %s", trigger or "a key the user chooses")
 
     def _listen(self) -> None:
@@ -135,7 +145,7 @@ class PortalHotkey:
                     except TimeoutError:
                         continue
                     session, shortcut_id = signal.body[0], signal.body[1]
-                    if session == self._session and shortcut_id == SHORTCUT_ID:
+                    if session == self._session and shortcut_id == self._id:
                         try:
                             self._pressed()
                         except Exception:

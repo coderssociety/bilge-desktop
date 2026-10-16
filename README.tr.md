@@ -113,9 +113,9 @@ uv sync --extra app && uv run bilge-app    # kurulum ve ayarlarıyla bildirim al
 
 “Bilge” de ya da Ayarlar → Genel'de seçtiğin dinleme kısayoluna bas; Bilge konuşurken basarsan susar. Kısayol
 seçiliyken uyandırma kelimesi kapatılabilir; o zaman kısayola basılana kadar hiçbir şey yazıya dökülmez. Windows ve
-X11 masaüstleri kısayolu doğrudan alır; Wayland'de masaüstü onayını ister (KDE Plasma 5.27+, GNOME 48+). Bunun
-olmadığı yerde `Bilge --listen` komutuna (tam hâli ayarlarda yazar) masaüstünün kendi klavye ayarlarından bir kısayol
-ata.
+X11 masaüstleri kısayolu doğrudan alır; Wayland'de masaüstü bir kez onayını ister (KDE Plasma 5.27+, GNOME 48+); KDE'de
+sonradan Sistem Ayarları → Kısayollar'dan değiştirilebilir. Bunun olmadığı yerde ve isteği alıp kendisi tuş atamayan
+Hyprland'de, `Bilge --listen` komutuna (tam hâli ayarlarda yazar) masaüstünün kendi klavye ayarlarından bir kısayol ata.
 
 ## Konuşma tanıma
 
