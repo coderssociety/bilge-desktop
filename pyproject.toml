@@ -1,6 +1,6 @@
 [project]
 name = "bilge"
-version = "0.1.0"
+version = "0.1.1"
 description = "A voice assistant for Windows and Linux that speaks Turkish and English."
 readme = "README.md"
 license = "GPL-3.0-or-later"

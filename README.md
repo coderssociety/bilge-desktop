@@ -16,7 +16,7 @@ in a plain file.
 
 ## Status
 
-All five phases are done; 0.1.0 is the first release.
+All five phases are done; 0.1.1 is the first release.
 
 1. **Core** (done): the Turkish and English parsers from the Mac version with the same test cases, the
    tool-calling agent with confirmations and prompt-injection rules, and a text chat to try it.
