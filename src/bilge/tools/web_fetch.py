@@ -22,6 +22,8 @@ TIMEOUT_SECONDS = 15
 TOTAL_SECONDS = 25
 MAX_BYTES = 3_000_000
 MAX_REDIRECTS = 5
+TRANSIENT_STATUSES = frozenset({502, 503, 504})
+RETRY_DELAY_SECONDS = 0.4
 ALLOWED_PORTS = frozenset({80, 443})
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 _CHUNK = 64 * 1024
@@ -57,6 +59,15 @@ class Response:
 
 
 def get(url: str, language: AssistantLanguage = AssistantLanguage.TURKISH, max_bytes: int = MAX_BYTES) -> Response:
+    response = _follow(url, language, max_bytes)
+    if response.status in TRANSIENT_STATUSES:
+        # One retry for a gateway hiccup: Open-Meteo answered 503 once and fine right after.
+        time.sleep(RETRY_DELAY_SECONDS)
+        response = _follow(url, language, max_bytes)
+    return response
+
+
+def _follow(url: str, language: AssistantLanguage, max_bytes: int) -> Response:
     deadline = time.monotonic() + TOTAL_SECONDS
     current = url
     for _ in range(MAX_REDIRECTS + 1):
