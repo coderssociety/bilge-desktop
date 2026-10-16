@@ -39,7 +39,7 @@ Linux'ta Secret Service).
 
 ## Durum
 
-Beş aşamanın hepsi tamam; 0.1.1 ilk sürüm.
+Beş aşamanın hepsi tamam; en yeni sürüm 0.1.2.
 
 1. **Çekirdek** (tamam): Mac sürümündeki Türkçe ve İngilizce ayrıştırıcılar, aynı test örnekleriyle; onaylı ve
    istem enjeksiyonuna karşı kurallı araç çağıran ajan; denemek için yazılı sohbet.
