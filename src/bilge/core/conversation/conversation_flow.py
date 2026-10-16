@@ -159,6 +159,19 @@ class ConversationFlow:
             return ReturnToIdle(timed_out=False)
         return self._run(command)
 
+    def shortcut_pressed(self, at: datetime) -> Action:
+        """The listening shortcut: like the wake phrase said on its own, and pressed again while Bilge waits for
+        the request, a cancel. While Bilge is answering it changes nothing here."""
+        if isinstance(self._phase, AwaitingCommand):
+            self._speech_in_progress = False
+            self._phase = ListeningForWake()
+            return ReturnToIdle(timed_out=False)
+        if isinstance(self._phase, ListeningForWake | FollowUp):
+            self._session = None
+            self._phase = AwaitingCommand(deadline=at + timedelta(seconds=self.command_timeout))
+            return AcknowledgeWake()
+        return NoAction()
+
     def speech_started(self, at: datetime) -> None:
         """Once the user starts talking inside a window, the deadline no longer cuts them off."""
         if self.is_awaiting_speech:

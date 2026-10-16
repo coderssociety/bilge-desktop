@@ -128,6 +128,22 @@ def devices(args: argparse.Namespace) -> int:
     return 0
 
 
+def gpu(args: argparse.Namespace) -> int:
+    """The graphics cards Vulkan sees, and where Whisper would run with the current setting."""
+    from bilge.voice import gpu as gpus
+    from bilge.voice import placement
+    from bilge.voice.whisper_cpp import server_program
+
+    for card in gpus.find_gpus():
+        usable = "usable" if card.is_usable else "not used"
+        print(f"{card.index}: {card.name} ({card.kind.name.lower()}, Vulkan {card.api[0]}.{card.api[1]}, {usable})")
+    print(f"whisper.cpp: {server_program() or 'not in this build'}")
+    accelerator = config.load_settings().voice.accelerator
+    chosen = placement.choose(accelerator)
+    print(f"Whisper runs on ({accelerator}): {chosen.description or 'the processor'}")
+    return 0
+
+
 def enroll(args: argparse.Namespace) -> int:
     """Records five short sentences and stores the voice's embeddings (never the recordings)."""
     from bilge.voice import enrollment, models
@@ -283,6 +299,7 @@ def parser() -> argparse.ArgumentParser:
     say_command.set_defaults(run=say)
 
     commands.add_parser("devices", help="list microphones and speakers").set_defaults(run=devices)
+    commands.add_parser("gpu", help="show the graphics cards and where Whisper runs").set_defaults(run=gpu)
 
     enroll_command = commands.add_parser("enroll", help="teach Bilge your voice")
     enroll_command.add_argument("--language", choices=languages)

@@ -146,3 +146,34 @@ def test_a_bare_wake_word_in_the_follow_up_window_starts_a_fresh_wait():
     assert isinstance(flow.phase, AwaitingCommand)
     assert flow.tick(at=later(11)) == NoAction()
     assert flow.heard("dolar kaç lira", at=later(11)) == RunCommand("dolar kaç lira")
+
+
+def test_the_shortcut_wakes_like_the_bare_wake_phrase() -> None:
+    flow = make_flow()
+    assert flow.shortcut_pressed(START) == AcknowledgeWake()
+    assert flow.phase == AwaitingCommand(deadline=later(6))
+    assert flow.heard("saat kaç", later(2)) == RunCommand("saat kaç")
+
+
+def test_pressing_the_shortcut_again_while_waiting_cancels() -> None:
+    flow = make_flow()
+    flow.shortcut_pressed(START)
+    assert flow.shortcut_pressed(later(1)) == ReturnToIdle(timed_out=False)
+    assert flow.phase == ListeningForWake()
+
+
+def test_the_shortcut_in_the_follow_up_window_starts_a_fresh_wait_outside_the_work_session() -> None:
+    flow = make_flow()
+    flow.response_started()
+    flow.response_finished(at=START, allow_follow_up=True, session=WorkSession(window=30, accepts=lambda _: True))
+    assert flow.shortcut_pressed(later(1)) == AcknowledgeWake()
+    assert flow.heard("bir sonraki şarkı", later(2)) == RunCommand("bir sonraki şarkı")
+
+
+def test_the_shortcut_changes_nothing_while_bilge_answers() -> None:
+    flow = make_flow()
+    flow.heard("asistan saat kaç", START)
+    assert flow.shortcut_pressed(later(1)) == NoAction()
+    flow.response_started()
+    assert flow.shortcut_pressed(later(1)) == NoAction()
+    assert flow.phase == Responding()

@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules, copy_metadata
 
 root = Path(SPECPATH).parent
 windows = sys.platform == "win32"
@@ -16,6 +16,12 @@ datas = [
 ]
 for package in ("faster_whisper", "certifi", "caldav", "icalendar", "livekit"):
     datas += collect_data_files(package)
+# Bilge's own version, which the update check compares with the newest release.
+datas += copy_metadata("bilge")
+# whisper.cpp with Vulkan, built by packaging/whisper; kept as plain files, since PyInstaller has nothing to add to a
+# static program. A build without it runs Whisper on the processor or an NVIDIA card only.
+if (root / "build/whisper").is_dir():
+    datas.append((str(root / "build/whisper"), "whisper"))
 # Only on some systems: PortAudio's own copy (Windows, macOS) and the time zone database (Windows).
 for package in ("_sounddevice_data", "tzdata"):
     try:

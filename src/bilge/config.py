@@ -59,6 +59,15 @@ class VoiceSettings:
     speaker_check: bool = False
     input_device: str | None = None
     output_device: str | None = None
+    # Whether saying the wake phrase starts a request; off, only the shortcut does.
+    wake_word: bool = True
+    # A key combination that makes Bilge listen, as Qt writes it ("Ctrl+Shift+B"); empty for none.
+    hotkey: str = ""
+    # Where local Whisper runs: "auto", "cpu", or "gpu" (any graphics card, through whisper.cpp).
+    accelerator: str = "auto"
+
+
+ACCELERATORS = ("auto", "cpu", "gpu")
 
 
 @dataclass
@@ -85,6 +94,8 @@ class Settings:
     show_hud: bool = True
     # Set once the first-run setup has been finished.
     setup_done: bool = False
+    # Once a day, whether a newer Bilge has been published on GitHub.
+    check_updates: bool = True
 
     @property
     def assistant_language(self) -> AssistantLanguage:
@@ -128,11 +139,16 @@ def load_settings(path: Path | None = None) -> Settings:
             speaker_check=bool(voice.get("speaker_check", defaults.speaker_check)),
             input_device=voice.get("input_device") or None,
             output_device=voice.get("output_device") or None,
+            # A file edited by hand must not leave Bilge with no way to be called.
+            wake_word=bool(voice.get("wake_word", True)) or not str(voice.get("hotkey") or ""),
+            hotkey=str(voice.get("hotkey") or ""),
+            accelerator=accelerator if (accelerator := str(voice.get("accelerator", ""))) in ACCELERATORS else "auto",
         ),
         language=str(data.get("language", AssistantLanguage.TURKISH.value)),
         weather_city=str(data.get("weather_city") or "İstanbul"),
         show_hud=bool(data.get("show_hud", True)),
         setup_done=bool(data.get("setup_done", False)),
+        check_updates=bool(data.get("check_updates", True)),
         model=ModelSettings(
             provider=str(model.get("provider", "lmstudio")),
             model=str(model.get("model", "")),

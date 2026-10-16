@@ -22,6 +22,19 @@ jobs:
         run: |
           $version = uv run python -c "from importlib.metadata import version; print(version('bilge'))"
           if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} but pyproject says $version" }
+      - name: Vulkan SDK, for whisper.cpp on graphics cards
+        env:
+          VULKAN_VERSION: "1.4.313.2"
+          VULKAN_SHA256: "74d0e395a17e02b3256494ab69ba635b5c50efe8bf0202d6baba3e016ca5348f"
+        run: |
+          $installer = "$env:RUNNER_TEMP\vulkansdk.exe"
+          curl.exe -fsSL -o $installer "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $env:VULKAN_SHA256) { throw "Vulkan SDK checksum mismatch" }
+          & $installer --accept-licenses --default-answer --confirm-command install
+          if ($LASTEXITCODE -ne 0) { throw "Vulkan SDK install failed" }
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_VERSION"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\Bin"
+      - run: powershell -File packaging\whisper\build-windows.ps1
       - run: |
           New-Item -ItemType Directory -Force build | Out-Null
           uv run python packaging/make_icon.py build/bilge.ico

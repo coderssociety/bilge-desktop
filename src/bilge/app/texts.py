@@ -8,6 +8,7 @@ _TURKISH = {
     "status.off": "Kapalı",
     "status.starting": "Hazırlanıyor…",
     "status.listening": "“Bilge” demeni bekliyor",
+    "status.listening_shortcut": "Kısayola basmanı bekliyor",
     "status.awake": "Dinliyor",
     "status.transcribing": "Anlıyor",
     "status.thinking": "Düşünüyor",
@@ -19,6 +20,8 @@ _TURKISH = {
     "menu.settings": "Ayarlar…",
     "menu.setup": "Kurulumu yeniden çalıştır…",
     "menu.quit": "Çık",
+    "menu.update": "Yeni sürüm: Bilge {version}…",
+    "update.notice": "Bilge'nin yeni sürümü çıktı ({version}). İndirme sayfasını menüden açabilirsin.",
     "tray.missing": "Bu masaüstünde bildirim alanı yok; Bilge'yi bu pencereden yönetebilirsin.",
     # HUD
     "hud.yes": "Evet",
@@ -45,6 +48,24 @@ _TURKISH = {
     "general.hud": "Ekranın köşesinde konuşmayı göster",
     "general.autostart": "Bilgisayar açılınca başlat",
     "general.city": "Hava durumu için şehir",
+    "general.wake_word": "“Bilge” deyince dinle",
+    "general.no_way_to_wake": "“Bilge” demeyi kapatmak için önce bir kısayol seç.",
+    "general.hotkey": "Dinleme kısayolu",
+    "general.hotkey_clear": "Temizle",
+    "general.hotkey_note": "Kısayola basınca Bilge adını duymuş gibi dinler; konuşurken basarsan susar.",
+    "general.listen_command": "Kısayol bu masaüstünde çalışmazsa, masaüstünün klavye ayarlarından şu komuta bir kısayol atayabilirsin:",
+    "general.updates": "Yeni sürümleri denetle (günde bir kez GitHub'a bakar)",
+    "general.check_now": "Şimdi denetle",
+    "update.checking": "Bakılıyor…",
+    "update.current": "Bilge güncel ({version}).",
+    "update.available": 'Yeni sürüm var: <a href="{url}">Bilge {version}</a>',
+    "update.failed": "Denetlenemedi: {error}",
+    "update.dev": "Bu bir geliştirme kopyası; sürümü denetlenmiyor.",
+    "hotkey.invalid": "“{shortcut}” kısayol olamaz. Ctrl+Shift, Win ya da Alt ile bir harf veya rakam, ya da bir F tuşu seç (Ctrl+Alt+harf, AltGr ile yazılan @, € gibi karakterleri engeller).",
+    "hotkey.taken": "“{shortcut}” başka bir uygulamada kullanılıyor; başka bir kısayol seç.",
+    "hotkey.unsupported": "Bu masaüstü Bilge'ye kendi kısayolunu vermiyor. Masaüstünün klavye ayarlarından şu komuta bir kısayol ata: {command}",
+    "hotkey.declined": "Kısayol masaüstünde onaylanmadı.",
+    "hotkey.wake_word_back": "Kısayol çalışmadığı için “Bilge” deyince dinleme yeniden açıldı.",
     "model.provider": "Sağlayıcı",
     "model.model": "Model",
     "model.fetch": "Modelleri getir",
@@ -72,6 +93,14 @@ _TURKISH = {
     "recognition.hint": "Bu bilgisayarda {cores} çekirdek ve {memory} GB bellek var. {advice}",
     "recognition.hint_local": "Yerel tanıma rahat çalışmalı.",
     "recognition.hint_api": "Yerel tanıma yavaş kalabilir; API daha hızlı olur.",
+    "recognition.accelerator": "Whisper nerede çalışsın",
+    "recognition.auto": "Otomatik (ayrı bir ekran kartı varsa onda)",
+    "recognition.cpu": "İşlemcide",
+    "recognition.gpu": "Ekran kartında (AMD, Intel ya da NVIDIA)",
+    "recognition.find_gpu": "Ekran kartını bul",
+    "recognition.gpu_checking": "Bakılıyor…",
+    "recognition.gpu_found": "Whisper burada çalışacak: {name}",
+    "recognition.gpu_none": "Uygun bir ekran kartı bulunamadı; Whisper işlemcide çalışacak.",
     "recognition.speaker": "Yalnızca benim sesime yanıt ver",
     "recognition.enroll": "Sesimi tanıt…",
     "recognition.enrolled": "Sesin kayıtlı ({date}).",
@@ -133,6 +162,7 @@ _ENGLISH = {
     "status.off": "Off",
     "status.starting": "Getting ready…",
     "status.listening": "Waiting for “Bilge”",
+    "status.listening_shortcut": "Waiting for the shortcut",
     "status.awake": "Listening",
     "status.transcribing": "Understanding",
     "status.thinking": "Thinking",
@@ -144,6 +174,8 @@ _ENGLISH = {
     "menu.settings": "Settings…",
     "menu.setup": "Run setup again…",
     "menu.quit": "Quit",
+    "menu.update": "New version: Bilge {version}…",
+    "update.notice": "A new version of Bilge is out ({version}). Open its download page from the menu.",
     "tray.missing": "This desktop has no notification area; you can manage Bilge from this window.",
     "hud.yes": "Yes",
     "hud.no": "No",
@@ -168,6 +200,24 @@ _ENGLISH = {
     "general.hud": "Show the conversation in the corner of the screen",
     "general.autostart": "Start when the computer starts",
     "general.city": "City for the weather",
+    "general.wake_word": "Listen when I say “Bilge”",
+    "general.no_way_to_wake": "Choose a shortcut before turning off “Bilge”.",
+    "general.hotkey": "Listening shortcut",
+    "general.hotkey_clear": "Clear",
+    "general.hotkey_note": "Pressing it makes Bilge listen as if you said its name; pressing it while Bilge talks stops it.",
+    "general.listen_command": "If the shortcut doesn't work on this desktop, give this command a shortcut in the desktop's keyboard settings:",
+    "general.updates": "Check for new versions (looks at GitHub once a day)",
+    "general.check_now": "Check now",
+    "update.checking": "Checking…",
+    "update.current": "Bilge is up to date ({version}).",
+    "update.available": 'A new version is out: <a href="{url}">Bilge {version}</a>',
+    "update.failed": "Couldn't check: {error}",
+    "update.dev": "This is a development copy; its version isn't checked.",
+    "hotkey.invalid": "“{shortcut}” can't be a shortcut. Pick a letter or digit with Ctrl+Shift, Win or Alt, or an F key (Ctrl+Alt+letter would block characters typed with AltGr, such as @ and €).",
+    "hotkey.taken": "Another app already uses “{shortcut}”; choose another shortcut.",
+    "hotkey.unsupported": "This desktop doesn't give Bilge a shortcut of its own. Give this command a shortcut in the desktop's keyboard settings: {command}",
+    "hotkey.declined": "The shortcut wasn't approved on the desktop.",
+    "hotkey.wake_word_back": "The shortcut didn't work, so listening for “Bilge” is back on.",
     "model.provider": "Provider",
     "model.model": "Model",
     "model.fetch": "Get models",
@@ -195,6 +245,14 @@ _ENGLISH = {
     "recognition.hint": "This computer has {cores} cores and {memory} GB of memory. {advice}",
     "recognition.hint_local": "Local recognition should run comfortably.",
     "recognition.hint_api": "Local recognition may be slow; an API will be faster.",
+    "recognition.accelerator": "Where Whisper runs",
+    "recognition.auto": "Automatic (on a dedicated graphics card if there is one)",
+    "recognition.cpu": "On the processor",
+    "recognition.gpu": "On the graphics card (AMD, Intel or NVIDIA)",
+    "recognition.find_gpu": "Find the graphics card",
+    "recognition.gpu_checking": "Looking…",
+    "recognition.gpu_found": "Whisper will run on: {name}",
+    "recognition.gpu_none": "No suitable graphics card found; Whisper will run on the processor.",
     "recognition.speaker": "Only answer my voice",
     "recognition.enroll": "Teach Bilge my voice…",
     "recognition.enrolled": "Your voice is saved ({date}).",
@@ -251,11 +309,19 @@ _ENGLISH = {
 }
 
 _language = AssistantLanguage.TURKISH
+# Whether "Bilge" wakes it; without, the idle status names the shortcut instead.
+_wake_word = True
 
 
-def use(language: AssistantLanguage) -> None:
-    global _language
+def use(language: AssistantLanguage, wake_word: bool = True) -> None:
+    global _language, _wake_word
     _language = language
+    _wake_word = wake_word
+
+
+def status(name: str) -> str:
+    """The label for one of the assistant's states ("listening", "thinking"…)."""
+    return t("status.listening_shortcut") if name == "listening" and not _wake_word else t(f"status.{name}")
 
 
 def t(key: str, **values: object) -> str:

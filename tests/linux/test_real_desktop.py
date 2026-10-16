@@ -242,3 +242,57 @@ def _location(calc):
         return calc.location()
     except CalcError:
         return None
+
+
+def test_the_listening_shortcut_is_grabbed_and_pressed_on_x11():
+    import threading
+
+    from bilge.desktop import hotkey
+
+    pressed = threading.Event()
+    grabbed = hotkey.register("Ctrl+Shift+B", pressed.set)
+    try:
+        # A second program asking for the same keys is told they are taken.
+        with pytest.raises(hotkey.HotkeyError) as caught:
+            hotkey.register("Ctrl+Shift+B", lambda: None)
+        assert caught.value.reason == "taken"
+        subprocess.run(["xdotool", "key", "ctrl+shift+b"], check=True)
+        assert pressed.wait(3)
+        # Num Lock on must not hide the shortcut.
+        pressed.clear()
+        subprocess.run(["xdotool", "key", "Num_Lock", "ctrl+shift+b", "Num_Lock"], check=True)
+        assert pressed.wait(3)
+    finally:
+        grabbed.stop()
+    again = hotkey.register("Ctrl+Shift+B", lambda: None)
+    again.stop()
+
+
+def test_vulkan_is_asked_about_the_graphics_cards():
+    from bilge.voice import gpu
+
+    found = gpu.find_gpus()
+    # The container has only Mesa's software renderer, which Whisper must not be sent to.
+    assert found, "mesa-vulkan-drivers is installed, so Vulkan lists at least llvmpipe"
+    assert all(not card.is_usable for card in found if "llvmpipe" in card.name)
+    assert gpu.best_gpu(found, integrated=True) is None
+
+
+@pytest.mark.skipif(not os.environ.get("BILGE_WHISPER_SERVER"), reason="needs a whisper.cpp build")
+def test_whisper_cpp_runs_on_a_vulkan_device(tmp_path):
+    import numpy as np
+
+    from bilge.voice.gpu import Gpu, Kind
+    from bilge.voice.whisper_cpp import WhisperServer, server_program
+
+    model = Path(os.environ["BILGE_WHISPER_MODEL"])
+    software = Gpu(0, "llvmpipe", Kind.PROCESSOR, (1, 3))
+    server = WhisperServer(server_program(), model, TR, software, hint="Bilge", pid_file=tmp_path / "pid")
+    server.start()
+    try:
+        assert server.on_card
+        with wave.open(os.environ["BILGE_WHISPER_AUDIO"]) as audio:
+            samples = np.frombuffer(audio.readframes(audio.getnframes()), dtype="<i2").astype(np.float32) / 32768
+        assert "hava" in server.transcribe(samples).lower()
+    finally:
+        server.close()

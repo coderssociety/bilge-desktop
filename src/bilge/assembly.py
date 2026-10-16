@@ -165,11 +165,12 @@ def _office_tools(language: AssistantLanguage) -> list[Tool]:
 
 
 def voice_models(settings: config.Settings) -> tuple[ModelSpec, ...]:
-    from bilge.voice import models
+    from bilge.voice import models, placement
 
     needed = [models.SUPERTONIC, models.WHISPER_BASE]
     if settings.voice.recognizer == "local":
-        needed.append(models.WHISPER_TURBO)
+        on_vulkan = placement.choose(settings.voice.accelerator).where is placement.Where.VULKAN
+        needed.append(models.WHISPER_TURBO_GGML if on_vulkan else models.WHISPER_TURBO)
     if settings.voice.speaker_check:
         needed.append(models.CAMPLUS)
     return tuple(needed)
@@ -202,7 +203,7 @@ def build_voice_assistant(settings: config.Settings, on_event, provider: str | N
     from bilge.voice.assistant import Options, VoiceAssistant
     from bilge.voice.audio_io import FrontEnd, SoundDevice
     from bilge.voice.echo import EchoCanceller
-    from bilge.voice.recognizers import TRANSCRIPTION_PRESETS, APIRecognizer, WhisperRecognizer
+    from bilge.voice.recognizers import GuardedRecognizer, WhisperRecognizer
     from bilge.voice.speaker import CampPlus, SpeakerGate, VoiceStore
     from bilge.voice.speech_output import SpeechOutput
     from bilge.voice.supertonic import Supertonic
@@ -210,24 +211,6 @@ def build_voice_assistant(settings: config.Settings, on_event, provider: str | N
     language = settings.assistant_language
     voice = settings.voice
     root = models_dir()
-    if voice.recognizer == "local":
-        recognizer = WhisperRecognizer(str(root / models.WHISPER_TURBO.name), language, hint="Bilge")
-    elif voice.recognizer in TRANSCRIPTION_PRESETS:
-        base_url, default_model = TRANSCRIPTION_PRESETS[voice.recognizer]
-        key = config.api_key(voice.recognizer)
-        if not key:
-            raise ProviderError(f"Speech recognition through {voice.recognizer} needs an API key.")
-        recognizer = APIRecognizer(base_url, key, voice.recognizer_model or default_model, language)
-    else:
-        raise ProviderError(f"Unknown speech recognizer: {voice.recognizer}")
-    # The wake word is Turkish in both languages.
-    wake = WhisperRecognizer(str(root / models.WHISPER_BASE.name), AssistantLanguage.TURKISH, hint="Bilge")
-    device = SoundDevice(voice.input_device, voice.output_device)
-    speech = SpeechOutput(Supertonic(root / models.SUPERTONIC.name), device, language, voice.voice)
-    gate = None
-    if voice.speaker_check:
-        gate = SpeakerGate(VoiceStore(config.data_dir() / "voiceprint.json"),
-                           CampPlus(root / models.CAMPLUS.name / models.CAMPLUS_FILE), enabled=True)  # fmt: skip
     holder: dict = {}
     agent = build_agent(
         settings,
@@ -236,8 +219,55 @@ def build_voice_assistant(settings: config.Settings, on_event, provider: str | N
         model=model,
         announce=lambda text: holder["assistant"].announce(text),
     )
-    options = Options(wake_phrase=voice.wake_phrase, follow_up=voice.follow_up, barge_in=voice.barge_in)
+    # The wake word is Turkish in both languages.
+    wake = GuardedRecognizer(
+        WhisperRecognizer(str(root / models.WHISPER_BASE.name), AssistantLanguage.TURKISH, hint="Bilge")
+    )
+    recognizer = GuardedRecognizer(_recognizer(voice, language, root))
+    try:
+        device = SoundDevice(voice.input_device, voice.output_device)
+        speech = SpeechOutput(Supertonic(root / models.SUPERTONIC.name), device, language, voice.voice)
+        gate = None
+        if voice.speaker_check:
+            gate = SpeakerGate(VoiceStore(config.data_dir() / "voiceprint.json"),
+                               CampPlus(root / models.CAMPLUS.name / models.CAMPLUS_FILE), enabled=True)  # fmt: skip
+    except BaseException:
+        recognizer.close()
+        raise
+    options = Options(wake_phrase=voice.wake_phrase, follow_up=voice.follow_up, barge_in=voice.barge_in,
+                      wake_word=voice.wake_word or not voice.hotkey)  # fmt: skip
     assistant = VoiceAssistant(recognizer, speech, agent, language, options, gate, on_event, wake_recognizer=wake)
     holder["assistant"] = assistant
     front_end = FrontEnd(device, assistant.on_chunk, EchoCanceller() if voice.barge_in else None)
     return assistant, front_end
+
+
+def _recognizer(voice: config.VoiceSettings, language: AssistantLanguage, root: Path):
+    from bilge.voice import models, placement
+    from bilge.voice.recognizers import TRANSCRIPTION_PRESETS, APIRecognizer, WhisperRecognizer
+    from bilge.voice.whisper_cpp import WhisperServer, WhisperServerError, server_program
+
+    if voice.recognizer in TRANSCRIPTION_PRESETS:
+        base_url, default_model = TRANSCRIPTION_PRESETS[voice.recognizer]
+        key = config.api_key(voice.recognizer)
+        if not key:
+            raise ProviderError(f"Speech recognition through {voice.recognizer} needs an API key.")
+        return APIRecognizer(base_url, key, voice.recognizer_model or default_model, language)
+    if voice.recognizer != "local":
+        raise ProviderError(f"Unknown speech recognizer: {voice.recognizer}")
+    chosen = placement.choose(voice.accelerator)
+    program = server_program()
+    if chosen.where is placement.Where.VULKAN and program is not None:
+        model = root / models.WHISPER_TURBO_GGML.name / models.WHISPER_TURBO_GGML_FILE
+        server = WhisperServer(program, model, language, chosen.gpu, hint="Bilge",
+                               pid_file=config.data_dir() / "whisper-server.pid")  # fmt: skip
+        try:
+            server.start()
+        except WhisperServerError as error:
+            raise ProviderError(
+                f"Whisper could not start on {chosen.description}: {error}. "
+                "Choose the processor under Settings → Recognition."
+            ) from error
+        return server
+    device = "cuda" if chosen.where is placement.Where.CUDA else "cpu"
+    return WhisperRecognizer(str(root / models.WHISPER_TURBO.name), language, device=device, hint="Bilge")

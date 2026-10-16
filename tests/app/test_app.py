@@ -32,6 +32,9 @@ class FakeAssistant:
     def answer(self, confirmed):
         self.answers.append(confirmed)
 
+    def shortcut_pressed(self):
+        self.on_event("status", "awake")
+
 
 class FakeFrontEnd:
     def start(self):
@@ -290,3 +293,82 @@ def test_programs_started_by_the_packaged_app_get_the_systems_libraries(monkeypa
     assert process.child_environment()["LD_LIBRARY_PATH"] == "/opt/lib"
     monkeypatch.delenv("LD_LIBRARY_PATH_ORIG")
     assert "LD_LIBRARY_PATH" not in process.child_environment()
+
+
+def test_the_shortcut_switches_listening_on_and_then_listens(qapp):
+    found, built = controller()
+    statuses = []
+    found.status_changed.connect(statuses.append)
+    found.shortcut_pressed()
+    assert wait(lambda: statuses[-1:] == ["awake"], qapp)
+    assert found.is_on and len(built) == 1
+    found.stop()
+
+
+def test_the_shortcut_and_wake_word_are_saved(qapp, isolated, tmp_path):
+    from PySide6.QtGui import QKeySequence
+
+    from bilge.app.settings import SettingsWindow
+
+    texts.use(AssistantLanguage.TURKISH)
+    window = SettingsWindow(config.Settings(), tmp_path / "settings.json")
+    general = window.pages["general"]
+    general.wake_word.setChecked(False)
+    window.save()
+    assert window.message.text() == texts.t("general.no_way_to_wake")
+    general.hotkey.setKeySequence(QKeySequence("Shift+B"))
+    window.save()
+    assert "Shift+B" in window.message.text()
+    assert not (tmp_path / "settings.json").exists()
+    general.hotkey.setKeySequence(QKeySequence("Shift+Ctrl+B"))
+    window.pages["recognition"].accelerator.setCurrentIndex(2)
+    window.save()
+    voice = config.load_settings(tmp_path / "settings.json").voice
+    assert (voice.hotkey, voice.wake_word, voice.accelerator) == ("Ctrl+Shift+B", False, "gpu")
+
+
+def test_a_newer_release_is_offered_in_the_menu(qapp):
+    from bilge.app.tray import Tray
+    from bilge.update import Release
+
+    tray = Tray()
+    notified = []
+    tray.notify = notified.append
+    assert not tray.update.isVisible()
+    release = Release("0.2.0", "https://github.com/coderssociety/bilge-desktop/releases/tag/v0.2.0")
+    tray.show_update(release, announce=True)
+    tray.show_update(release, announce=False)
+    assert tray.update.isVisible() and "0.2.0" in tray.update.text()
+    assert len(notified) == 1
+
+
+def test_the_shortcut_is_ignored_while_the_settings_are_open(qapp, isolated, tmp_path, monkeypatch):
+    from bilge.app.shell import Shell
+
+    found, _ = controller()
+    pressed = []
+    monkeypatch.setattr(found, "shortcut_pressed", lambda: pressed.append(True))
+    shell = Shell(qapp, found, tmp_path / "settings.json")
+    shell.open_settings()
+    shell.shortcut_pressed()
+    assert pressed == []
+    shell.settings_window.reject()
+    shell.shortcut_pressed()
+    assert pressed == [True]
+
+
+def test_a_shortcut_that_fails_brings_the_wake_word_back(qapp, isolated, tmp_path, monkeypatch):
+    from bilge.app.shell import Shell
+
+    path = tmp_path / "settings.json"
+    settings = config.Settings(setup_done=True)
+    settings.voice.wake_word, settings.voice.hotkey = False, "Ctrl+Shift+B"
+    config.save_settings(settings, path)
+    found, _ = controller()
+    shell = Shell(qapp, found, path)
+    messages = []
+    monkeypatch.setattr(shell, "_failed", messages.append)
+    shell._shortcut_failed("taken")
+    assert config.load_settings(path).voice.wake_word
+    assert "Ctrl+Shift+B" in messages[0] and texts.t("hotkey.wake_word_back") in messages[0]
+    assert texts.status("listening") == texts.t("status.listening")

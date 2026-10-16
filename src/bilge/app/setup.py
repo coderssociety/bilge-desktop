@@ -140,7 +140,9 @@ class SetupWizard(QWizard):
         self.recognition.apply(self.settings)
         self.download_button.setEnabled(False)
         self.download_page.set_busy(True)
-        specs = assembly.voice_models(self.settings)
+        # Read now on the window thread; which Whisper model is needed depends on the graphics card, and finding it
+        # out takes a moment, so that happens with the download.
+        chosen = copy.deepcopy(self.settings)
         relay = _Progress()
         relay.changed.connect(self._show_progress)
 
@@ -148,7 +150,7 @@ class SetupWizard(QWizard):
             relay.changed.emit(spec.name, int(done * 100 / max(total, 1)))
 
         def download() -> None:
-            assembly.download_missing(specs, progress)
+            assembly.download_missing(assembly.voice_models(chosen), progress)
 
         def finished(_=None) -> None:
             self.progress.setValue(100)

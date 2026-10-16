@@ -17,18 +17,23 @@ from bilge.app.tray import app_icon
 # The id the installer gives Bilge's Start menu shortcut, so Windows shows notifications under Bilge's name.
 WINDOWS_APP_ID = "CodersSociety.Bilge"
 LOG_BYTES = 1_000_000
+# `Bilge --listen` asks the running Bilge to listen, as its shortcut does; for a shortcut set in the desktop's own
+# keyboard settings where Bilge cannot have one of its own (some Wayland desktops).
+LISTEN_ARGUMENT = "--listen"
+LISTEN, SHOW = b"listen", b"show"
+KNOCK_MS = 300
 
 
 def _instance_name() -> str:
     return f"bilge-{getpass.getuser()}"
 
 
-def _already_running() -> bool:
+def _already_running(message: bytes) -> bool:
     socket = QLocalSocket()
     socket.connectToServer(_instance_name())
     if not socket.waitForConnected(300):
         return False
-    socket.write(b"show")
+    socket.write(message)
     socket.waitForBytesWritten(300)
     socket.disconnectFromServer()
     return True
@@ -42,10 +47,17 @@ def _listen_for_others(shell: Shell) -> QLocalServer:
 
     def knocked() -> None:
         connection = server.nextPendingConnection()
-        if connection is not None:
-            connection.disconnectFromServer()
-            connection.deleteLater()
-        shell.bring_forward()
+        if connection is None:
+            return
+        if not connection.bytesAvailable():
+            connection.waitForReadyRead(KNOCK_MS)
+        message = bytes(connection.readAll())
+        connection.disconnectFromServer()
+        connection.deleteLater()
+        if message == LISTEN:
+            shell.shortcut_pressed()
+        else:
+            shell.bring_forward()
 
     server.newConnection.connect(knocked)
     if not server.listen(_instance_name()):
@@ -97,11 +109,13 @@ def main(argv: list[str] | None = None) -> int:
     app.setWindowIcon(app_icon())
     # Closing the settings leaves Bilge running in the tray.
     app.setQuitOnLastWindowClosed(False)
-    if _already_running():
+    arguments = argv if argv is not None else sys.argv
+    if _already_running(LISTEN if LISTEN_ARGUMENT in arguments[1:] else SHOW):
         return 0
     _windows_identity()
     texts.use(_settings_or_defaults().assistant_language)
     shell = Shell(app)
+    app.aboutToQuit.connect(shell.shut_down)
     server = _listen_for_others(shell)
     shell.begin()
     code = app.exec()

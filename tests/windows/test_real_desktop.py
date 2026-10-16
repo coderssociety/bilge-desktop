@@ -197,3 +197,30 @@ def test_an_everyday_command_runs_through_the_assembled_assistant(desktop):
         assert desktop.volume.state().level == 40
     finally:
         desktop.volume.set_level(before.level)
+
+
+def test_the_listening_shortcut_is_registered_and_pressed():
+    import threading
+
+    from bilge.desktop import hotkey
+    from bilge.desktop.windows import win32
+
+    pressed = threading.Event()
+    registered = hotkey.register("Ctrl+Alt+F9", pressed.set)
+    try:
+        with pytest.raises(hotkey.HotkeyError) as caught:
+            hotkey.register("Ctrl+Alt+F9", lambda: None)
+        assert caught.value.reason == "taken"
+        win32.press(win32.VK_CONTROL, 0x12, 0x78)  # Ctrl, Alt, F9
+        assert pressed.wait(3)
+    finally:
+        registered.stop()
+    hotkey.register("Ctrl+Alt+F9", lambda: None).stop()
+
+
+def test_the_graphics_card_probe_answers_without_crashing_bilge():
+    from bilge.voice import gpu
+
+    found = gpu.find_gpus()
+    assert isinstance(found, list)
+    print("Vulkan devices:", found)

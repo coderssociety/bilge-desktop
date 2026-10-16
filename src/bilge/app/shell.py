@@ -4,14 +4,16 @@ the settings and the setup."""
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QSystemTrayIcon, QVBoxLayout, QWidget
 
-from bilge import config
+from bilge import config, update
 from bilge.app import texts
 from bilge.app.controller import AssistantController
 from bilge.app.hud import Hud
 from bilge.app.settings import SettingsWindow
 from bilge.app.setup import SetupWizard
+from bilge.app.shortcut import ListeningShortcut, listen_command
 from bilge.app.texts import t
 from bilge.app.tray import Tray, app_icon
+from bilge.app.updates import UpdateWatcher
 
 # At login the tray may come up after Bilge; it is looked for this long before the small window is used instead.
 TRAY_WAIT_MS = 30_000
@@ -37,7 +39,7 @@ class ControlWindow(QWidget):
         self.resize(320, 200)
 
     def show_status(self, status: str) -> None:
-        self.status.setText(t(f"status.{status}"))
+        self.status.setText(texts.status(status))
 
 
 class Shell:
@@ -59,6 +61,12 @@ class Shell:
         self._was_on = False
         self._tray_waited = 0
         self._tray_timer = QTimer(interval=TRAY_POLL_MS, timeout=self._look_for_tray)
+        self.shortcut = ListeningShortcut()
+        self.shortcut.pressed.connect(self.shortcut_pressed)
+        self.shortcut.failed.connect(self._shortcut_failed)
+        self.updates = UpdateWatcher(lambda: self._settings().check_updates)
+        self.updates.found.connect(self._update_found)
+        self._release: update.Release | None = None
         self._build_menus()
 
     def _settings(self) -> config.Settings:
@@ -92,6 +100,8 @@ class Shell:
         self.tray.setup_requested.connect(self.open_setup)
         self.tray.quit_requested.connect(self.quit)
         self.tray.show()
+        if self._release is not None:
+            self.tray.show_update(self._release, announce=False)
         self._status(self.controller.status)
 
     def _look_for_tray(self) -> None:
@@ -110,6 +120,9 @@ class Shell:
     def begin(self) -> None:
         settings = self._settings()
         self.hud.enabled = settings.show_hud
+        self._use_texts(settings)
+        self.shortcut.apply(settings.voice.hotkey)
+        self.updates.start()
         if settings.setup_done:
             self.controller.start()
         else:
@@ -126,6 +139,30 @@ class Shell:
             self.control.show()
             return
         self.open_settings()
+
+    def shortcut_pressed(self) -> None:
+        """The listening shortcut, or `Bilge --listen`. While settings or setup are open, Bilge stays paused."""
+        if any(window is not None and window.isVisible() for window in (self.settings_window, self.wizard)):
+            return
+        self.controller.shortcut_pressed()
+
+    def _shortcut_failed(self, reason: str) -> None:
+        settings = self._settings()
+        message = t(f"hotkey.{reason}", shortcut=settings.voice.hotkey, command=listen_command())
+        if not settings.voice.wake_word:
+            # Without the shortcut and the wake word nothing would make Bilge listen.
+            settings.voice.wake_word = True
+            config.save_settings(settings, self.settings_path)
+            self._use_texts(settings)
+            self.controller.restart()
+            message = f"{message}\n{t('hotkey.wake_word_back')}"
+        self._failed(message)
+
+    def _update_found(self, release: update.Release) -> None:
+        first = self._release is None or self._release.version != release.version
+        self._release = release
+        if self.tray is not None:
+            self.tray.show_update(release, announce=first)
 
     def toggle_listening(self) -> None:
         if self.controller.is_on:
@@ -162,7 +199,7 @@ class Shell:
         settings = self._settings()
         if language:
             settings.language = language
-            texts.use(settings.assistant_language)
+            self._use_texts(settings)
         self._discard_wizard()
         self.wizard = SetupWizard(settings, self.settings_path)
         self.wizard.language_chosen.connect(self._setup_language)
@@ -202,9 +239,14 @@ class Shell:
         self._apply(settings)
 
     def _apply(self, settings: config.Settings) -> None:
-        texts.use(settings.assistant_language)
+        self._use_texts(settings)
         self.hud.enabled = settings.show_hud
+        self.shortcut.apply(settings.voice.hotkey)
         self._build_menus()
+
+    @staticmethod
+    def _use_texts(settings: config.Settings) -> None:
+        texts.use(settings.assistant_language, wake_word=settings.voice.wake_word or not settings.voice.hotkey)
 
     # Events
 
@@ -222,5 +264,9 @@ class Shell:
             self.control.status.setText(message)
 
     def quit(self) -> None:
-        self.controller.stop()
         self.app.quit()
+
+    def shut_down(self) -> None:
+        """On every way out (the menu, the session ending): whisper.cpp must not keep the graphics card's memory."""
+        self.shortcut.release()
+        self.controller.stop()

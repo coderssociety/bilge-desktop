@@ -3,11 +3,13 @@ the settings."""
 
 from importlib import resources
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QObject, Qt, QUrl, Signal
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
+from bilge.app import texts
 from bilge.app.texts import t
+from bilge.update import Release
 
 # The dot drawn on the owl for each state.
 _COLOURS = {
@@ -52,6 +54,10 @@ class Tray(QObject):
         menu.addAction(self.listen)
         menu.addAction(t("menu.settings"), self.settings_requested.emit)
         menu.addAction(t("menu.setup"), self.setup_requested.emit)
+        self.update = QAction(menu, visible=False)
+        self.update.triggered.connect(self._open_release)
+        menu.addAction(self.update)
+        self._release: Release | None = None
         menu.addSeparator()
         menu.addAction(t("menu.quit"), self.quit_requested.emit)
         self.menu = menu
@@ -63,7 +69,7 @@ class Tray(QObject):
         self.icon.show()
 
     def show_status(self, status: str) -> None:
-        label = t(f"status.{status}")
+        label = texts.status(status)
         self.icon.setIcon(status_icon(status))
         self.icon.setToolTip(f"Bilge — {label}")
         self.state.setText(label)
@@ -75,6 +81,18 @@ class Tray(QObject):
 
     def notify(self, message: str) -> None:
         self.icon.showMessage("Bilge", message, app_icon())
+
+    def show_update(self, release: Release, announce: bool) -> None:
+        """A newer Bilge is out: the menu offers its download page; `announce` also says so, once per version."""
+        self._release = release
+        self.update.setText(t("menu.update", version=release.version))
+        self.update.setVisible(True)
+        if announce:
+            self.notify(t("update.notice", version=release.version))
+
+    def _open_release(self) -> None:
+        if self._release is not None:
+            QDesktopServices.openUrl(QUrl(self._release.url))
 
     def _activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):

@@ -71,6 +71,8 @@ class Options:
     wake_phrase: str = "bilge"
     follow_up: bool = True
     barge_in: bool = True
+    # Off: only the shortcut starts a request, and nothing is transcribed until it is pressed.
+    wake_word: bool = True
 
 
 EventHandler = Callable[[str, str], None]
@@ -150,7 +152,29 @@ class VoiceAssistant:
         self.speech.stop()
         with self._wake:
             self._wake.notify_all()
+        # A recognizer may be a helper program (whisper.cpp) holding the graphics card's memory.
+        for recognizer in {id(r): r for r in (self.recognizer, self.wake_recognizer)}.values():
+            close = getattr(recognizer, "close", None)
+            if close is not None:
+                try:
+                    close()
+                except Exception:
+                    log.exception("Could not close a recognizer")
         self._set_status(Status.OFF)
+
+    def shortcut_pressed(self) -> None:
+        """The listening shortcut: like saying the wake phrase; while Bilge answers, like "Bilge, dur"."""
+        if not self._running.is_set() or self._awaiting_answer.is_set():
+            return
+        if self._speaking or self._thinking:
+            self._stopped_by_user = True
+            self.interrupt()
+            return
+        with self._flow_lock:
+            action = self.flow.shortcut_pressed(at=datetime.now())
+        if isinstance(action, ReturnToIdle):
+            self.speech.play(tone(self.speech.device.sample_rate, (660, 440)))
+        self._perform(action)
 
     def interrupt(self) -> None:
         """Stops the reply in progress; Bilge keeps listening."""
@@ -164,7 +188,12 @@ class VoiceAssistant:
         samples = chunk.tolist()
         if self._suspended:
             # While Bilge thinks or talks, the user can still stop it or ask something else.
-            if (self._speaking or self._thinking) and self.options.barge_in:
+            # Without the wake word, a cut-in is only listened for over a confirmation question.
+            if (
+                (self._speaking or self._thinking)
+                and self.options.barge_in
+                and (self.options.wake_word or self._asking)
+            ):
                 for segment in self._barge_segmenter.process(samples, probability):
                     log.debug("Cut-in segment: %.1f s", len(segment.samples) / SAMPLE_RATE)
                     self._queue(self._barge_utterances, np.asarray(segment.samples, dtype=np.float32))
@@ -213,6 +242,8 @@ class VoiceAssistant:
             return
         with self._flow_lock:
             is_wake_check = isinstance(self.flow.phase, ListeningForWake)
+        if is_wake_check and not self.options.wake_word:
+            return
         if not is_wake_check:
             self._set_status(Status.TRANSCRIBING)
         transcript = self._transcribe(samples, wake_check_only=is_wake_check)
@@ -229,7 +260,10 @@ class VoiceAssistant:
             self._event("heard", transcript)
         self._perform(action)
         if not is_wake_check and isinstance(action, NoAction):
-            self._set_status(Status.AWAKE)
+            # The shortcut may have closed the window while this was being transcribed.
+            with self._flow_lock:
+                awaiting = self.flow.is_awaiting_speech
+            self._set_status(Status.AWAKE if awaiting else Status.LISTENING)
 
     def _transcribe(self, samples: np.ndarray, wake_check_only: bool) -> str | None:
         """While waiting for the wake word only the opening seconds are transcribed; the rest only if it is there."""

@@ -251,3 +251,57 @@ def test_an_announcement_cut_short_leaves_the_next_reply_alone():
     assistant._handle_utterance(SPEECH)
     assert wait(lambda: "Tamam: saat kaç" in speech.said)
     assistant.stop()
+
+
+def test_the_shortcut_makes_bilge_listen_for_a_request():
+    assistant, speech, agent = make(ScriptedRecognizer("saat kaç?"))
+    assistant.start()
+    assistant.shortcut_pressed()
+    assert assistant.status is Status.AWAKE
+    assistant._handle_utterance(SPEECH)
+    assert wait(lambda: agent.commands == ["saat kaç?"])
+    assistant.stop()
+
+
+def test_the_shortcut_stops_bilge_while_it_talks():
+    assistant, speech, _ = make(ScriptedRecognizer())
+    assistant.start()
+    assistant._speaking = True
+    assistant.shortcut_pressed()
+    assert speech.stopped == 1 and assistant._stopped_by_user
+    assistant.stop()
+
+
+def test_without_the_wake_word_nothing_is_transcribed_until_the_shortcut():
+    full, quick = ScriptedRecognizer("Bilge, saat kaç?"), ScriptedRecognizer("Bilge, saat kaç?")
+    assistant, speech, agent = make(full, options=Options(wake_word=False), quick=quick)
+    assistant.start()
+    assistant._handle_utterance(SPEECH)
+    time.sleep(0.1)
+    assert agent.commands == [] and full.texts and quick.texts
+    assistant.shortcut_pressed()
+    assistant._handle_utterance(SPEECH)
+    assert wait(lambda: agent.commands == ["saat kaç?"])
+    assistant.stop()
+
+
+def test_without_the_wake_word_speech_over_a_reply_is_not_listened_to():
+    assistant, _, _ = make(ScriptedRecognizer(), options=Options(wake_word=False))
+    assistant._suspended = assistant._speaking = True
+    for _ in range(100):
+        assistant.on_chunk(np.full(512, 0.5, dtype=np.float32))
+    assert assistant._barge_utterances == []
+
+
+def test_stopping_closes_a_recognizer_that_holds_a_helper_program():
+    class Closing(ScriptedRecognizer):
+        closed = 0
+
+        def close(self):
+            Closing.closed += 1
+
+    shared = Closing()
+    assistant, _, _ = make(shared, quick=shared)
+    assistant.start()
+    assistant.stop()
+    assert Closing.closed == 1

@@ -47,6 +47,8 @@ class AssistantController(QObject):
         self._starting = False
         # Bumped by every start and stop, so a start that finishes after a stop knows it is no longer wanted.
         self._generation = 0
+        # The shortcut was pressed while listening was off.
+        self._wake_when_started = False
         self.status = OFF
 
     @property
@@ -79,6 +81,7 @@ class AssistantController(QObject):
                 if generation != self._generation:
                     return
                 self._starting = False
+                self._wake_when_started = False
             self._set_status(FAILED)
             self.failed.emit(str(error) or type(error).__name__)
             return
@@ -88,10 +91,25 @@ class AssistantController(QObject):
                 self._assistant, self._front_end = assistant, front_end
                 # Only the current start may clear the flag; an older one finishing late must not.
                 self._starting = False
+                wake, self._wake_when_started = self._wake_when_started, False
         if not wanted:
             _shut(assistant, front_end)
             return
         log.info("Bilge is listening (%s, %s)", settings.model.provider, settings.voice.recognizer)
+        if wake:
+            assistant.shortcut_pressed()
+
+    def shortcut_pressed(self) -> None:
+        """The listening shortcut. With listening off it switches it on, and Bilge listens once it has started."""
+        with self._lock:
+            assistant = self._assistant
+            if assistant is None:
+                self._wake_when_started = True
+        if assistant is not None:
+            # Playing the wake tone may wait on the sound device; the window thread must not.
+            threading.Thread(target=assistant.shortcut_pressed, name="bilge-shortcut", daemon=True).start()
+            return
+        self.start()
 
     def stop(self) -> None:
         with self._lock:
@@ -99,6 +117,7 @@ class AssistantController(QObject):
             self._assistant = self._front_end = None
             self._generation += 1
             self._starting = False
+            self._wake_when_started = False
         if front_end is not None:
             front_end.stop()
         if assistant is not None:

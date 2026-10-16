@@ -29,4 +29,14 @@ CAMPLUS = ModelSpec(
 )
 CAMPLUS_FILE = "3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx"
 
-ALL = (SUPERTONIC, WHISPER_TURBO, WHISPER_BASE, CAMPLUS)
+
+# The same Whisper turbo in whisper.cpp's format (MIT), for graphics cards; 8-bit, half the size of the full one.
+WHISPER_TURBO_GGML = ModelSpec(
+    repo_id="ggerganov/whisper.cpp",
+    revision="5359861c739e955e79d9a303bcbc70fb988958b1",
+    patterns=("ggml-large-v3-turbo-q8_0.bin",),
+    name="whisper-large-v3-turbo-ggml",
+)
+WHISPER_TURBO_GGML_FILE = "ggml-large-v3-turbo-q8_0.bin"
+
+ALL = (SUPERTONIC, WHISPER_TURBO, WHISPER_TURBO_GGML, WHISPER_BASE, CAMPLUS)

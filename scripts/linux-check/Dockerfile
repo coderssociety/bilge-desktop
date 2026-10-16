@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         xvfb openbox xdotool xclip xsel x11-utils scrot \
         dbus dbus-x11 libglib2.0-bin dconf-service dconf-gsettings-backend gsettings-desktop-schemas \
         pulseaudio pulseaudio-utils mpv mpv-mpris dunst libnotify-bin mousepad desktop-file-utils \
-        libportaudio2 \
+        libportaudio2 libvulkan1 mesa-vulkan-drivers \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:0.12.19 /uv /usr/local/bin/uv
 

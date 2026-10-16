@@ -8,6 +8,7 @@ export UV_PYTHON=3.12 UV_PYTHON_PREFERENCE=only-managed UV_HTTP_TIMEOUT=300
 uv sync --quiet --locked --extra app
 version=$(uv run python -c "from importlib.metadata import version; print(version('bilge'))")
 arch=$(uname -m)
+bash packaging/whisper/build-linux.sh
 uv run pyinstaller packaging/bilge.spec --noconfirm --distpath build/dist --workpath build/pyinstaller --log-level WARN
 
 app=build/Bilge.AppDir
@@ -28,7 +29,7 @@ RUN
 chmod +x "$app/AppRun"
 
 tool=build/appimagetool
-curl -fsSL -o "$tool" "https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-${arch}.AppImage"
+curl -fsSL --retry 5 --retry-all-errors -o "$tool" "https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-${arch}.AppImage"
 chmod +x "$tool"
 ARCH=$arch "$tool" --appimage-extract-and-run "$app" "/out/Bilge-${version}-${arch}.AppImage"
 ls -la /out

@@ -47,3 +47,26 @@ def test_a_file_saved_with_a_byte_order_mark_is_read(tmp_path):
     path.write_bytes(b"\xef\xbb\xbf" + b'{"language": "en", "setup_done": true}')
     loaded = config.load_settings(path)
     assert loaded.language == "en" and loaded.setup_done
+
+
+def test_how_bilge_is_called_and_where_whisper_runs_round_trip(tmp_path):
+    path = tmp_path / "settings.json"
+    settings = config.Settings(check_updates=False)
+    settings.voice.wake_word, settings.voice.hotkey, settings.voice.accelerator = False, "Ctrl+Shift+B", "gpu"
+    config.save_settings(settings, path)
+    assert config.load_settings(path) == settings
+
+
+def test_a_hand_edited_file_never_leaves_bilge_uncallable(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text('{"voice": {"wake_word": false, "hotkey": "", "accelerator": "quantum"}}', encoding="utf-8")
+    voice = config.load_settings(path).voice
+    assert voice.wake_word and voice.accelerator == "auto"
+
+
+def test_an_older_settings_file_gets_the_new_defaults(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text('{"language": "tr", "voice": {"recognizer": "local"}}', encoding="utf-8")
+    loaded = config.load_settings(path)
+    assert loaded.check_updates and loaded.voice.wake_word
+    assert (loaded.voice.hotkey, loaded.voice.accelerator) == ("", "auto")

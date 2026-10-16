@@ -61,6 +61,10 @@ class SettingsWindow(QDialog):
         return updated
 
     def save(self) -> None:
+        problem = self.pages["general"].problem()
+        if problem is not None:
+            self.message.setText(problem)
+            return
         updated = self.collect()
         try:
             for page in self.pages.values():

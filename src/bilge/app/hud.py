@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from bilge.app import texts
 from bilge.app.texts import t
 
 HIDE_AFTER_MS = 7000
@@ -56,7 +57,7 @@ class Hud(QWidget):
         self.enabled = True
 
     def show_status(self, status: str) -> None:
-        self.status.setText(t(f"status.{status}") if status else "")
+        self.status.setText(texts.status(status) if status else "")
         asking = status == "confirming"
         self.buttons.setVisible(asking)
         if status in ("awake", "transcribing", "thinking", "speaking", "confirming"):

@@ -20,8 +20,9 @@ All five phases are done; the first release is being prepared.
 
 1. **Core** (done): the Turkish and English parsers from the Mac version with the same test cases, the
    tool-calling agent with confirmations and prompt-injection rules, and a text chat to try it.
-2. **Voice** (done): wake word, speech recognition (Whisper on the computer, or the OpenAI or Groq API), the
-   Supertonic-3 voice, echo cancellation so you can cut in, and voice recognition of the owner.
+2. **Voice** (done): wake word or shortcut, speech recognition (Whisper on the processor or a graphics card, or
+   the OpenAI or Groq API), the Supertonic-3 voice, echo cancellation so you can cut in, and voice recognition of
+   the owner.
 3. **Linux tools** (done): apps, volume, music players, files and documents, typing and dictation, timers,
    calendar and reminders, LibreOffice Calc, system controls.
 4. **Windows tools** (done): the same, plus Excel, Outlook mail and Outlook's calendar and tasks.
@@ -55,10 +56,31 @@ uv sync --extra app && uv run bilge-app    # the tray app with setup and setting
 
 `uv run bilge models` lists the chosen provider's models.
 
+## Calling Bilge
+
+Say “Bilge”, or press the listening shortcut chosen under Settings → General; pressing it while Bilge talks stops
+it. With a shortcut chosen, the wake word can be turned off, and then nothing is transcribed until the shortcut is
+pressed. Windows and X11 desktops take the shortcut directly; on Wayland the desktop asks you to approve it (KDE
+Plasma 5.27+, GNOME 48+). Where it can't, give `Bilge --listen` (the settings show the full command) a shortcut in
+the desktop's own keyboard settings.
+
+## Speech recognition
+
+Whisper on the computer runs on the processor, on an NVIDIA card through CUDA when CUDA 12 and cuDNN 9 are
+installed, or on any graphics card (AMD, Intel or NVIDIA) through whisper.cpp with Vulkan, which the installers
+include. Automatic uses a dedicated card when there is one; Settings → Recognition can pick a card built into the
+processor too, or the processor alone. On a card the model is a separate download of about 870 MB.
+
+A recording with nothing louder than its own background is not transcribed, and the subtitle credits Whisper
+invents for silence (“Altyazı M.K.”, “Thanks for watching!”) are dropped from what it writes.
+
+## Updates
+
+Once a day Bilge asks GitHub for the newest release; a newer one shows up in the tray menu with a link to its
+page. Nothing is downloaded or installed by itself. Settings → General turns this off.
+
 ## What it can do
 
-| | Examples | Uses |
-|---|---|---|
 | | Examples | On Linux | On Windows |
 |---|---|---|---|
 | Apps | “Firefox'u aç”, “hesap makinesini kapat”, “açık uygulamalar neler” | menu entries, `gio` | the Start menu |
@@ -107,7 +129,10 @@ docker run --rm -v "$PWD":/src:ro bilge-linux-check
 ```
 
 Installers are built by `.github/workflows/release.yml` on a version tag: PyInstaller (`packaging/bilge.spec`),
-Inno Setup on Windows (`packaging/windows/bilge.iss`) and an AppImage built in Docker (`packaging/linux`).
+Inno Setup on Windows (`packaging/windows/bilge.iss`) and an AppImage built in Docker (`packaging/linux`). Both
+include whisper.cpp's server built with Vulkan (`packaging/whisper`); a build without it runs Whisper on the
+processor or an NVIDIA card only. To try a card from source, put a `whisper-server` on `PATH` or name it in
+`BILGE_WHISPER_SERVER`.
 
 On Windows, `tests/windows` does the same against the signed-in desktop (it opens and closes a few windows):
 
