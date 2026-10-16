@@ -94,6 +94,7 @@ _TEXTS = {
         "no_document": "'{query}' adında okunabilir bir belge bulamadım.",
         "no_download": "İndirilenler'de okunabilir bir belge bulamadım.",
         "empty_document": "'{name}' içinde okunabilir yazı yok.",
+        "scanned_pdf": "'{name}' taranmış bir belge gibi: içinde yazı değil yalnızca sayfa görüntüleri var, o yüzden okuyamıyorum.",
         "unreadable": "'{name}' okunamadı.",
         "document": "Belge: {name}\n{text}",
     },
@@ -124,6 +125,7 @@ _TEXTS = {
         "no_document": "I couldn't find a readable document called '{query}'.",
         "no_download": "I couldn't find a readable document in Downloads.",
         "empty_document": "There's no readable text in '{name}'.",
+        "scanned_pdf": "'{name}' looks like a scan: it holds pictures of pages rather than text, so I can't read it.",
         "unreadable": "'{name}' couldn't be read.",
         "document": "Document: {name}\n{text}",
     },
@@ -256,7 +258,8 @@ class FileTools:
         except documents.UnreadableDocument as error:
             raise ToolError(texts["unreadable"].format(name=file.name)) from error
         if not content:
-            raise ToolError(texts["empty_document"].format(name=file.name))
+            empty = "scanned_pdf" if file.suffix.lower() == ".pdf" else "empty_document"
+            raise ToolError(texts[empty].format(name=file.name))
         return texts["document"].format(name=file.name, text=content[:DOCUMENT_CHARACTERS])
 
     def _locate_document(self, query: str) -> Path | None:

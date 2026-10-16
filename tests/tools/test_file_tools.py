@@ -150,6 +150,12 @@ def test_latest_downloaded_pdf_is_found_by_type(home):
         read.run({"query": "olmayan rapor"})
 
 
+def test_a_pdf_without_text_is_said_to_be_a_scan(home):
+    write_pdf(home / "İndirilenler" / "tarama.pdf", "")
+    with pytest.raises(ToolError, match="taranmış bir belge"):
+        tools_for(home)["readDocument"].run({"query": "son indirdiğim pdf"})
+
+
 def test_a_declined_trash_question_leaves_nothing_to_move(home, monkeypatch):
     trashed = []
     monkeypatch.setattr("bilge.tools.desktop.files.send2trash", lambda path: trashed.append(path))
