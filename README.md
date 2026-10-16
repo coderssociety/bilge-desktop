@@ -1,8 +1,26 @@
-# Bilge for Windows and Linux
+<p align="center">
+  <img src="docs/images/logo.svg" width="128" height="128" alt="Bilge logo">
+</p>
 
-A voice assistant that speaks Turkish and English, for Windows and Linux. It is the sibling of
-[Bilge for macOS](https://github.com/coderssociety/bilge-assistant): the same assistant and the same rules
-(say “Bilge”, it asks before anything risky), rebuilt in Python because the Mac version is made of
+<h1 align="center">Bilge for Windows and Linux</h1>
+
+<p align="center">
+  A voice assistant that speaks Turkish and English, for Windows and Linux.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows" alt="Windows 10/11">
+  <img src="https://img.shields.io/badge/Linux-AppImage-FCC624?logo=linux&logoColor=black" alt="Linux AppImage">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+</p>
+
+<p align="center">
+  <img src="docs/images/hud-confirm.png" width="380" alt="Bilge asks before adding an event to the calendar">
+</p>
+
+It is the sibling of [Bilge for macOS](https://github.com/coderssociety/bilge-assistant): the same assistant and
+the same rules (say “Bilge”, it asks before anything risky), rebuilt in Python because the Mac version is made of
 Apple-only parts.
 
 Unlike the Mac version, the language model can be a hosted API as well as a local one, chosen per setup:
@@ -28,6 +46,36 @@ All five phases are done; 0.1.1 is the first release.
 4. **Windows tools** (done): the same, plus Excel, Outlook mail and Outlook's calendar and tasks.
 5. **The app** (done): a tray icon, a corner window showing the conversation, settings, first-run setup, a
    Windows installer and a Linux AppImage.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/setup.png" alt="Setup, first step: choosing the language"></td>
+    <td width="50%"><img src="docs/images/settings-general.png" alt="General settings"></td>
+  </tr>
+  <tr>
+    <td align="center">Setup starts with the language: Türkçe or English.</td>
+    <td align="center">The wake word, a listening shortcut, the corner window and update checks.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/settings-model.png" alt="Model settings"></td>
+    <td width="50%"><img src="docs/images/settings-recognition.png" alt="Recognition settings"></td>
+  </tr>
+  <tr>
+    <td align="center">A model on this computer (LM Studio, Ollama, llama.cpp) or a hosted API.</td>
+    <td align="center">Whisper on the processor or a graphics card, its speed, and your voice.</td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/images/hud-answer.png" width="380" alt="Bilge answers a weather question"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">The corner window shows what it heard and what it answered.</td>
+  </tr>
+</table>
+
+The pictures are of Windows 11; on Linux the windows take the desktop's own look. `scripts/screenshots.py`
+makes them again from the app's real windows, with sample settings.
 
 ## Installing
 
