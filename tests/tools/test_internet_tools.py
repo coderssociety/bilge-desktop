@@ -74,6 +74,27 @@ def test_news_reads_headlines(monkeypatch):
     assert internet.news(TR).run({}) == "Anadolu Ajansı'ndan son başlıklar. Birinci. Ikinci."
 
 
+def _feed(count: int) -> bytes:
+    items = "".join(f"<item><title>Haber {n}</title></item>" for n in range(1, count + 1))
+    return f"<rss><channel>{items}</channel></rss>".encode()
+
+
+def test_news_names_the_topic_and_goes_on_when_asked_again(monkeypatch):
+    fake_web(monkeypatch, {"https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji": _feed(7)})
+    tool = internet.news(TR)
+    arguments = tool.refine({"category": "general"}, "Teknoloji haberlerinden başlık var mı")
+    assert arguments == {"category": "technology"}
+    assert tool.run(arguments).startswith("Anadolu Ajansı'ndan son bilim-teknoloji başlıkları. Haber 1.")
+    follow_up = tool.refine({"category": "general"}, "Bu kadar mı")
+    assert tool.run(follow_up) == "Sıradaki başlıklar. Haber 6. Haber 7."
+    assert tool.run(follow_up).startswith("Son okuduğumdan beri yeni başlık yok;")
+
+
+def test_news_keeps_the_models_topic_when_the_command_asks_for_news(monkeypatch):
+    tool = internet.news(TR)
+    assert tool.refine({"category": "general"}, "Bugünün önemli haberleri var mı") == {"category": "general"}
+
+
 def test_web_page_is_untrusted():
     assert internet.read_web_page(TR).untrusted_output
     assert internet.news(TR).untrusted_output

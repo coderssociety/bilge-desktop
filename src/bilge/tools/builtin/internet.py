@@ -3,6 +3,7 @@ headlines (Anadolu Ajansı / BBC) and reading a web page. None of these need an 
 
 import json
 import math
+import threading
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
@@ -11,12 +12,14 @@ from urllib.parse import urlencode
 from bilge.brain.instructions import weekday_name
 from bilge.core import text
 from bilge.core.language import AssistantLanguage
-from bilge.core.web import html_text, rss_headlines, weather_report
+from bilge.core.web import html_text, news_request, rss_headlines, weather_report
 from bilge.tools import web_fetch
 from bilge.tools.base import Tool, ToolError
 
 EN, TR = AssistantLanguage.ENGLISH, AssistantLanguage.TURKISH
 HEADLINE_COUNT = 5
+# Enough of the feed to go on with after the first few.
+FEED_COUNT = 30
 # Enough for a long article; the model only sees the start of a longer page.
 PAGE_CHARACTERS = 12_000
 
@@ -244,19 +247,56 @@ NEWS_FEEDS = {
 }  # fmt: skip
 
 
+# As each feed names its topic.
+NEWS_TOPIC_NAMES = {
+    TR: {"economy": "ekonomi", "sports": "spor", "world": "dünya", "technology": "bilim-teknoloji"},
+    EN: {"economy": "business", "sports": "sport", "world": "world", "technology": "technology"},
+}
+
+
+def _news_introduction(kind: news_request.Kind, category: str, language: AssistantLanguage) -> str:
+    name = NEWS_TOPIC_NAMES[language].get(category)
+    if language is EN:
+        if kind is news_request.Kind.NEXT:
+            return "The next headlines. "
+        if kind is news_request.Kind.AGAIN:
+            return "Nothing new since I last read them; the latest are still these. "
+        return f"Latest {name} headlines from BBC News. " if name else "Latest headlines from BBC News. "
+    if kind is news_request.Kind.NEXT:
+        return "Sıradaki başlıklar. "
+    if kind is news_request.Kind.AGAIN:
+        return "Son okuduğumdan beri yeni başlık yok; en son başlıklar yine şunlar. "
+    return f"Anadolu Ajansı'ndan son {name} başlıkları. " if name else "Anadolu Ajansı'ndan son başlıklar. "
+
+
 def news(language: AssistantLanguage) -> Tool:
     english = language is EN
+    memory = news_request.HeadlineMemory()
+    lock = threading.Lock()
+
+    def refine(arguments: dict[str, Any], command: str) -> dict[str, Any]:
+        """A topic said in the command wins over the model's choice; "bu kadar mı" goes on with the topic just read."""
+        named = news_request.topic(command)
+        if named is None and news_request.is_continuation(command):
+            with lock:
+                named = memory.recent_topic(datetime.now())
+        return {**arguments, "category": named} if named else arguments
 
     def run(arguments: dict[str, Any]) -> str:
-        feed = NEWS_FEEDS[language].get(arguments.get("category") or "general", NEWS_FEEDS[language]["general"])
+        category = arguments.get("category") or "general"
+        if category not in NEWS_FEEDS[language]:
+            category = "general"
         try:
-            headlines = rss_headlines.parse(web_fetch.get(feed, language).body, HEADLINE_COUNT)
+            feed = rss_headlines.parse(web_fetch.get(NEWS_FEEDS[language][category], language).body, FEED_COUNT)
         except web_fetch.WebFetchError as error:
             raise ToolError(("Couldn't get the news. " if english else "Haberler alınamadı. ") + str(error)) from error
-        if not headlines:
+        if not feed:
             raise ToolError("No headlines found." if english else "Haber başlığı bulunamadı.")
-        source = "Latest headlines from BBC News. " if english else "Anadolu Ajansı'ndan son başlıklar. "
-        return source + " ".join(h if h.endswith(".") else h + "." for h in headlines)
+        with lock:
+            reading = memory.next(feed, category, HEADLINE_COUNT, datetime.now())
+        return _news_introduction(reading.kind, category, language) + " ".join(
+            h if h.endswith(".") else h + "." for h in reading.headlines
+        )
 
     return Tool(
         "news",
@@ -268,6 +308,7 @@ def news(language: AssistantLanguage) -> Tool:
             "type": "object",
             "properties": {"category": {"type": "string", "enum": list(NEWS_FEEDS[language])}},
         },
+        refine=refine,
         untrusted_output=True,
         spoken_action=lambda _: (
             "Shall I read the latest headlines?" if english else "Son haber başlıklarını okuyayım mı?"
